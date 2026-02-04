@@ -1,0 +1,932 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="UniFile Documentation - Learn how your files are processed securely in your browser"
+    />
+    <title>UniFile Documentation - How Your Data is Processed</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>"
+    />
+    <style>
+      :root {
+        --primary: #667eea;
+        --primary-dark: #5a67d8;
+        --secondary: #764ba2;
+        --accent: #f093fb;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --bg-dark: #0f0f23;
+        --bg-card: #1a1a2e;
+        --bg-card-hover: #252542;
+        --text-primary: #ffffff;
+        --text-secondary: #a0aec0;
+        --text-muted: #718096;
+        --border: #2d3748;
+        --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        --gradient-warning: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+        background: var(--bg-dark);
+        color: var(--text-primary);
+        line-height: 1.7;
+        min-height: 100vh;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+
+      /* Header */
+      .doc-header {
+        text-align: center;
+        padding: 3rem 0;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 3rem;
+      }
+
+      .doc-header h1 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        background: var(--gradient-primary);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 0.5rem;
+      }
+
+      .doc-header .subtitle {
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+      }
+
+      .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--primary);
+        text-decoration: none;
+        margin-bottom: 2rem;
+        font-weight: 500;
+        transition: color 0.2s;
+      }
+
+      .back-link:hover {
+        color: var(--accent);
+      }
+
+      .back-link svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      /* Navigation */
+      .doc-nav {
+        background: var(--bg-card);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 3rem;
+        border: 1px solid var(--border);
+      }
+
+      .doc-nav h3 {
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+        margin-bottom: 1rem;
+      }
+
+      .doc-nav ul {
+        list-style: none;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.5rem;
+      }
+
+      .doc-nav a {
+        color: var(--text-secondary);
+        text-decoration: none;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        display: block;
+        transition: all 0.2s;
+      }
+
+      .doc-nav a:hover {
+        background: var(--bg-card-hover);
+        color: var(--primary);
+      }
+
+      /* Sections */
+      .doc-section {
+        margin-bottom: 4rem;
+      }
+
+      .doc-section h2 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .doc-section h2 .icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .doc-section h2 .icon svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      .doc-section h2 .icon.privacy {
+        background: var(--gradient-success);
+      }
+      .doc-section h2 .icon.process {
+        background: var(--gradient-primary);
+      }
+      .doc-section h2 .icon.tech {
+        background: var(--gradient-warning);
+      }
+
+      .doc-section h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 2rem 0 1rem;
+        color: var(--text-primary);
+      }
+
+      .doc-section p {
+        color: var(--text-secondary);
+        margin-bottom: 1rem;
+      }
+
+      .doc-section ul,
+      .doc-section ol {
+        color: var(--text-secondary);
+        margin-bottom: 1.5rem;
+        padding-left: 1.5rem;
+      }
+
+      .doc-section li {
+        margin-bottom: 0.5rem;
+      }
+
+      .doc-section strong {
+        color: var(--text-primary);
+      }
+
+      /* Info Cards */
+      .info-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin: 1.5rem 0;
+      }
+
+      .info-card.highlight {
+        border-color: var(--primary);
+        background: linear-gradient(
+          135deg,
+          rgba(102, 126, 234, 0.1) 0%,
+          rgba(118, 75, 162, 0.1) 100%
+        );
+      }
+
+      .info-card.success {
+        border-color: var(--success);
+        background: linear-gradient(
+          135deg,
+          rgba(16, 185, 129, 0.1) 0%,
+          rgba(5, 150, 105, 0.1) 100%
+        );
+      }
+
+      .info-card.warning {
+        border-color: var(--warning);
+        background: linear-gradient(
+          135deg,
+          rgba(245, 158, 11, 0.1) 0%,
+          rgba(217, 119, 6, 0.1) 100%
+        );
+      }
+
+      .info-card h4 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .info-card p {
+        margin-bottom: 0;
+      }
+
+      /* Code blocks */
+      .code-block {
+        background: #0d1117;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1rem 1.25rem;
+        font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+        font-size: 0.875rem;
+        overflow-x: auto;
+        margin: 1rem 0;
+        color: #c9d1d9;
+      }
+
+      .code-block .comment {
+        color: #8b949e;
+      }
+      .code-block .keyword {
+        color: #ff7b72;
+      }
+      .code-block .string {
+        color: #a5d6ff;
+      }
+      .code-block .function {
+        color: #d2a8ff;
+      }
+
+      /* Process Flow */
+      .process-flow {
+        display: grid;
+        gap: 1.5rem;
+        margin: 2rem 0;
+      }
+
+      .flow-step {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.5rem;
+        display: flex;
+        gap: 1.25rem;
+        align-items: flex-start;
+      }
+
+      .flow-step .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--gradient-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1.125rem;
+        flex-shrink: 0;
+      }
+
+      .flow-step h4 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+      }
+
+      .flow-step p {
+        color: var(--text-secondary);
+        margin: 0;
+      }
+
+      /* Technology Grid */
+      .tech-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin: 1.5rem 0;
+      }
+
+      .tech-item {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 1.25rem;
+      }
+
+      .tech-item h4 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: var(--primary);
+      }
+
+      .tech-item p {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        margin: 0;
+      }
+
+      /* Footer */
+      .doc-footer {
+        text-align: center;
+        padding: 3rem 0;
+        border-top: 1px solid var(--border);
+        margin-top: 4rem;
+        color: var(--text-muted);
+      }
+
+      .doc-footer a {
+        color: var(--primary);
+        text-decoration: none;
+      }
+
+      .doc-footer a:hover {
+        text-decoration: underline;
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        .container {
+          padding: 1rem;
+        }
+
+        .doc-header h1 {
+          font-size: 1.75rem;
+        }
+
+        .doc-nav ul {
+          grid-template-columns: 1fr;
+        }
+
+        .flow-step {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <a href="index.html" class="back-link">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        Back to UniFile
+      </a>
+
+      <header class="doc-header">
+        <h1>⚡ UniFile Documentation</h1>
+        <p class="subtitle">
+          Understanding how your files are processed securely
+        </p>
+      </header>
+
+      <nav class="doc-nav">
+        <h3>Quick Navigation</h3>
+        <ul>
+          <li><a href="#privacy">🔒 Privacy & Security</a></li>
+          <li><a href="#how-it-works">⚙️ How Processing Works</a></li>
+          <li><a href="#image-processing">🖼️ Image Processing</a></li>
+          <li><a href="#document-processing">📄 Document Processing</a></li>
+          <li><a href="#merge-processing">🔗 Merge Processing</a></li>
+          <li><a href="#technologies">🛠️ Technologies Used</a></li>
+        </ul>
+      </nav>
+
+      <section class="doc-section" id="privacy">
+        <h2>
+          <span class="icon privacy">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              stroke-width="2"
+            >
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+          </span>
+          Privacy & Security
+        </h2>
+
+        <div class="info-card success">
+          <h4>🔒 Your Files Never Leave Your Device</h4>
+          <p>
+            UniFile processes all files entirely within your web browser. There
+            are no servers receiving your data, no uploads, and no data
+            collection whatsoever. Your privacy is guaranteed by design.
+          </p>
+        </div>
+
+        <h3>What This Means</h3>
+        <ul>
+          <li>
+            <strong>No Upload:</strong> Your files are never sent to any server.
+            Everything happens locally.
+          </li>
+          <li>
+            <strong>No Storage:</strong> We don't store your files anywhere.
+            Once you close the tab, the data is gone.
+          </li>
+          <li>
+            <strong>No Tracking:</strong> We don't track what files you convert
+            or any usage patterns.
+          </li>
+          <li>
+            <strong>Works Offline:</strong> After the initial page load, you can
+            even use UniFile without an internet connection.
+          </li>
+          <li>
+            <strong>Open Source:</strong> The code is fully transparent and
+            available on GitHub for inspection.
+          </li>
+        </ul>
+
+        <h3>Technical Privacy Guarantees</h3>
+        <p>
+          UniFile uses browser-native APIs and WebAssembly to process files.
+          Here's what happens technically:
+        </p>
+        <ol>
+          <li>
+            When you drop a file, it's read into your browser's memory using the
+            <code>FileReader</code> API
+          </li>
+          <li>
+            Processing happens using JavaScript and WebAssembly libraries
+            running in your browser
+          </li>
+          <li>
+            The converted file is created as a <code>Blob</code> object in
+            memory
+          </li>
+          <li>
+            When you download, your browser saves the Blob directly to your
+            device
+          </li>
+          <li>No network requests are made during any of these steps</li>
+        </ol>
+      </section>
+
+      <section class="doc-section" id="how-it-works">
+        <h2>
+          <span class="icon process">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="12" r="3"></circle>
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4"
+              ></path>
+            </svg>
+          </span>
+          How Data Processing Works
+        </h2>
+
+        <p>
+          Understanding the complete journey of your file from upload to
+          download:
+        </p>
+
+        <div class="process-flow">
+          <div class="flow-step">
+            <div class="step-number">1</div>
+            <div>
+              <h4>File Selection</h4>
+              <p>
+                When you drag & drop or click to select files, the browser's
+                File API creates a reference to your file. The file stays on
+                your disk - only a pointer is created in memory.
+              </p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="step-number">2</div>
+            <div>
+              <h4>Format Detection</h4>
+              <p>
+                UniFile reads the file extension and first few bytes (magic
+                numbers) to accurately detect the file format. This determines
+                which processing pipeline to use.
+              </p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="step-number">3</div>
+            <div>
+              <h4>File Reading</h4>
+              <p>
+                Using FileReader API, the file is read into browser memory as an
+                ArrayBuffer or DataURL. This is raw binary data that can be
+                processed by JavaScript.
+              </p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="step-number">4</div>
+            <div>
+              <h4>Processing</h4>
+              <p>
+                Depending on the file type, different processing engines are
+                used: <br />• Images: HTML5 Canvas API <br />• PDFs: pdf-lib
+                WebAssembly library <br />• HEIC: heic2any converter <br />•
+                Documents: Showdown for Markdown, DOM APIs for HTML
+              </p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="step-number">5</div>
+            <div>
+              <h4>Output Generation</h4>
+              <p>
+                The processed data is converted to the target format and
+                packaged as a Blob object. This is an efficient binary
+                representation that exists only in memory.
+              </p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="step-number">6</div>
+            <div>
+              <h4>Download</h4>
+              <p>
+                A temporary object URL is created for the Blob, and the
+                browser's download mechanism saves it directly to your device.
+                The URL is immediately revoked after download starts.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="doc-section" id="image-processing">
+        <h2>
+          <span class="icon tech">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              stroke-width="2"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+              <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+          </span>
+          Image Processing
+        </h2>
+
+        <p>
+          Images are processed using the HTML5 Canvas API, which provides native
+          browser support for image manipulation.
+        </p>
+
+        <h3>Conversion Process</h3>
+        <ol>
+          <li>
+            <strong>Load Image:</strong> The image is loaded into an
+            <code>HTMLImageElement</code>
+          </li>
+          <li>
+            <strong>Draw to Canvas:</strong> The image is drawn onto a 2D canvas
+            context at full resolution
+          </li>
+          <li>
+            <strong>Export:</strong> The canvas is exported using
+            <code>canvas.toBlob()</code> with the target MIME type
+          </li>
+          <li>
+            <strong>Quality Control:</strong> For lossy formats (JPEG, WebP),
+            the quality parameter is applied during export
+          </li>
+        </ol>
+
+        <div class="code-block">
+          <span class="comment">// Simplified image conversion process</span>
+          <span class="keyword">const</span> canvas =
+          document.createElement(<span class="string">'canvas'</span>);
+          canvas.width = image.width; canvas.height = image.height;
+
+          <span class="keyword">const</span> ctx = canvas.getContext(<span
+            class="string"
+            >'2d'</span
+          >); ctx.drawImage(image, 0, 0);
+
+          <span class="comment">// Export to target format with quality</span>
+          canvas.toBlob(blob => {
+          <span class="function">downloadBlob</span>(blob,
+          <span class="string">'output.jpg'</span>); },
+          <span class="string">'image/jpeg'</span>, 0.9);
+        </div>
+
+        <h3>HEIC/HEIF Processing</h3>
+        <p>
+          HEIC files (common on iPhones) require special handling since browsers
+          don't natively support them. We use the
+          <strong>heic2any</strong> library which:
+        </p>
+        <ul>
+          <li>Decodes HEIC using a WebAssembly-based decoder</li>
+          <li>Converts to JPEG or PNG format that browsers can display</li>
+          <li>Preserves image quality during conversion</li>
+        </ul>
+
+        <div class="info-card warning">
+          <h4>⚠️ HEIC Encoding Limitation</h4>
+          <p>
+            Browsers cannot encode to HEIC format natively. When "HEIC" is
+            selected as output, a high-quality JPEG is produced instead with a
+            fallback notification.
+          </p>
+        </div>
+      </section>
+
+      <section class="doc-section" id="document-processing">
+        <h2>
+          <span class="icon process">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              stroke-width="2"
+            >
+              <path
+                d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+              ></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+            </svg>
+          </span>
+          Document Processing
+        </h2>
+
+        <h3>PDF Operations</h3>
+        <p>
+          PDF processing uses the <strong>pdf-lib</strong> library, a powerful
+          WebAssembly-based PDF manipulation tool:
+        </p>
+        <ul>
+          <li>
+            <strong>PDF Merging:</strong> Copies pages from multiple PDFs into a
+            new document
+          </li>
+          <li>
+            <strong>Image to PDF:</strong> Embeds images as full-page content
+          </li>
+          <li>
+            <strong>Text to PDF:</strong> Renders text content with proper
+            pagination
+          </li>
+        </ul>
+
+        <div class="code-block">
+          <span class="comment">// PDF merging with pdf-lib</span>
+          <span class="keyword">const</span> { PDFDocument } = PDFLib;
+          <span class="keyword">const</span> mergedPdf =
+          <span class="keyword">await</span> PDFDocument.create();
+
+          <span class="keyword">for</span> (<span class="keyword">const</span>
+          file <span class="keyword">of</span> files) {
+          <span class="keyword">const</span> pdf =
+          <span class="keyword">await</span> PDFDocument.load(file);
+          <span class="keyword">const</span> pages =
+          <span class="keyword">await</span> mergedPdf.copyPages(pdf,
+          pdf.getPageIndices()); pages.forEach(page => mergedPdf.addPage(page));
+          }
+
+          <span class="keyword">const</span> pdfBytes =
+          <span class="keyword">await</span> mergedPdf.save();
+        </div>
+
+        <h3>Markdown Processing</h3>
+        <p>
+          Markdown files are converted using <strong>Showdown</strong>, a
+          JavaScript Markdown-to-HTML converter:
+        </p>
+        <ul>
+          <li>Supports standard Markdown syntax</li>
+          <li>Converts headings, lists, links, code blocks, and more</li>
+          <li>Output is wrapped in a styled HTML document</li>
+        </ul>
+
+        <h3>HTML/Text Processing</h3>
+        <p>HTML and text files are processed using native browser APIs:</p>
+        <ul>
+          <li>
+            <strong>HTML to Text:</strong> Uses DOMParser to extract text
+            content
+          </li>
+          <li>
+            <strong>Text to HTML:</strong> Wraps content in pre-formatted HTML
+          </li>
+          <li>
+            <strong>Text to PDF:</strong> Renders with proper line breaking and
+            pagination
+          </li>
+        </ul>
+      </section>
+
+      <section class="doc-section" id="merge-processing">
+        <h2>
+          <span class="icon privacy">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              stroke-width="2"
+            >
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="8" y="14" width="8" height="7"></rect>
+            </svg>
+          </span>
+          Merge Processing (Cross-Format)
+        </h2>
+
+        <p>
+          UniFile's merge mode allows combining files from different formats
+          into a single output:
+        </p>
+
+        <div class="info-card highlight">
+          <h4>🔗 Universal Merge</h4>
+          <p>
+            You can mix images (JPG, PNG, HEIC) with documents (PDF, TXT,
+            Markdown) and merge them all into a single PDF. Each file type is
+            handled appropriately.
+          </p>
+        </div>
+
+        <h3>How Cross-Format Merge Works</h3>
+        <ol>
+          <li>
+            <strong>File Detection:</strong> Each file's category (image,
+            document, etc.) is detected
+          </li>
+          <li>
+            <strong>Individual Processing:</strong> Based on category:
+            <ul>
+              <li><em>Images</em> → Converted to full-page PDF pages</li>
+              <li><em>PDFs</em> → Pages are copied directly</li>
+              <li>
+                <em>Text/Markdown/HTML</em> → Converted to formatted PDF pages
+              </li>
+            </ul>
+          </li>
+          <li>
+            <strong>Order Preservation:</strong> Files are added in the order
+            you arranged them (drag to reorder)
+          </li>
+          <li>
+            <strong>Single Output:</strong> All pages are combined into one PDF
+            document
+          </li>
+        </ol>
+
+        <h3>Drag-and-Drop Reordering</h3>
+        <p>
+          Before merging, you can drag files in the list to change their order.
+          This determines the page order in the final merged PDF.
+        </p>
+      </section>
+
+      <section class="doc-section" id="technologies">
+        <h2>
+          <span class="icon tech">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              stroke-width="2"
+            >
+              <polyline points="16 18 22 12 16 6"></polyline>
+              <polyline points="8 6 2 12 8 18"></polyline>
+            </svg>
+          </span>
+          Technologies Used
+        </h2>
+
+        <p>
+          UniFile is built with modern web technologies that enable powerful
+          processing entirely in the browser:
+        </p>
+
+        <div class="tech-grid">
+          <div class="tech-item">
+            <h4>pdf-lib</h4>
+            <p>
+              WebAssembly-based PDF creation and manipulation. Creates,
+              modifies, and merges PDFs without any server.
+            </p>
+          </div>
+          <div class="tech-item">
+            <h4>heic2any</h4>
+            <p>
+              Converts HEIC/HEIF images (iPhone photos) to web-compatible
+              formats like JPEG and PNG.
+            </p>
+          </div>
+          <div class="tech-item">
+            <h4>Showdown</h4>
+            <p>
+              Markdown to HTML converter. Transforms Markdown documents into
+              properly formatted HTML.
+            </p>
+          </div>
+          <div class="tech-item">
+            <h4>Canvas API</h4>
+            <p>
+              Native browser API for image manipulation. Handles format
+              conversion and quality settings.
+            </p>
+          </div>
+          <div class="tech-item">
+            <h4>File API</h4>
+            <p>
+              Browser API for reading files from your device without uploading
+              them anywhere.
+            </p>
+          </div>
+          <div class="tech-item">
+            <h4>Blob API</h4>
+            <p>
+              Creates downloadable file objects entirely in memory for secure,
+              instant downloads.
+            </p>
+          </div>
+        </div>
+
+        <h3>Why Client-Side Processing?</h3>
+        <ul>
+          <li><strong>Privacy:</strong> Your files never leave your device</li>
+          <li>
+            <strong>Speed:</strong> No upload/download time - processing is
+            instant
+          </li>
+          <li>
+            <strong>Reliability:</strong> Works offline after initial page load
+          </li>
+          <li>
+            <strong>No Limits:</strong> No file size restrictions or daily
+            quotas
+          </li>
+          <li>
+            <strong>Free Forever:</strong> No server costs means free service
+            for everyone
+          </li>
+        </ul>
+      </section>
+
+      <footer class="doc-footer">
+        <p>Built with ❤️ by <strong>Sukant Sondhi</strong></p>
+        <p>
+          <a href="index.html">Back to UniFile</a> •
+          <a
+            href="https://github.com/Sukantsondhi"
+            target="_blank"
+            rel="noopener noreferrer"
+            >GitHub</a
+          >
+        </p>
+      </footer>
+    </div>
+  </body>
+</html>
