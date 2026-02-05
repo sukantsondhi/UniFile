@@ -1,4 +1,4 @@
-# Unifile - Universal Offline File Converter
+# UniFile - Universal Offline File Converter
 
 <p align="center">
   <img src="https://img.shields.io/badge/Privacy-100%25%20Offline-green?style=for-the-badge" alt="100% Offline">
@@ -7,9 +7,9 @@
   <img src="https://img.shields.io/badge/Formats-80%2B-purple?style=for-the-badge" alt="80+ Formats">
 </p>
 
-**Unifile** is a powerful, privacy-focused universal file converter that runs entirely in your browser. Convert images, documents, audio, and video – all offline. No uploads, no servers, no tracking – your files never leave your device.
+**UniFile** is a powerful, privacy-focused universal file converter that runs entirely in your browser. Convert images, documents, audio, and video – all offline. No uploads, no servers, no tracking – your files never leave your device.
 
-🔗 **Live Demo:** [https://sukantsondhi.com/unifile](https://sukantsondhi.com/unifile)
+🔗 **Live Demo:** [https://unifile.sukantsondhi.com](https://unifile.sukantsondhi.com)
 
 ---
 
@@ -25,6 +25,7 @@
 ### 🖼️ Image Conversion (36 formats)
 
 **Input Formats:**
+
 - Popular: PNG, JPG, WebP, GIF, HEIC, AVIF
 - Professional: PSD, RAW, CR2, CR3, NEF, DNG, ARW, RW2, ORF, SRF
 - Legacy: BMP, ICO, TIFF, TIF, TGA, PCX, PBM, PGM, PPM, PNM
@@ -82,14 +83,14 @@ Works on all modern browsers across:
 
 ### Option 1: Use Online (Recommended)
 
-Simply visit **[sukantsondhi.com/unifile](https://sukantsondhi.com/unifile)** – no installation required!
+Simply visit **[unifile.sukantsondhi.com](https://unifile.sukantsondhi.com)** – no installation required!
 
 ### Option 2: Run Locally
 
 ```bash
 # Clone the repository
-git clone https://github.com/Sukantsondhi/unifile.git
-cd unifile
+git clone https://github.com/Sukantsondhi/UniFile.git
+cd UniFile
 
 # Serve with any HTTP server
 # Using Python:
@@ -103,15 +104,6 @@ php -S localhost:8000
 ```
 
 Then open `http://localhost:8000` in your browser.
-
-### Option 3: Deploy to GitHub Pages
-
-1. Fork this repository
-2. Go to Settings → Pages
-3. Select "Deploy from a branch" → `main` → `/ (root)`
-4. Your site will be live at `https://yourusername.github.io/unifile`
-
----
 
 ## 📖 How to Use
 
@@ -159,60 +151,13 @@ Then open `http://localhost:8000` in your browser.
 
 ### Supported Formats Summary
 
-| Category  | Input Formats | Output Formats |
-| --------- | ------------- | -------------- |
-| Images    | 36 formats    | 8 formats      |
-| Documents | 13 formats    | 4 formats      |
-| Audio     | 21 formats    | 8 formats      |
-| Video     | 22 formats    | 6 formats      |
-| **Total** | **92 formats**| **26 formats** |
-
----
-
-## 🌐 Deployment Options
-
-### GitHub Pages (Free)
-
-Perfect for static hosting with custom domain support.
-
-### Custom Domain with Cloudflare
-
-If you're hosting your domain on Cloudflare:
-
-1. Deploy to GitHub Pages first
-2. In Cloudflare, create a CNAME record pointing to your GitHub Pages
-3. Or use Cloudflare Pages for direct deployment
-
-### Azure Static Web Apps
-
-```bash
-# Using Azure CLI
-az staticwebapp create \
-  --name unifile \
-  --resource-group my-resource-group \
-  --source https://github.com/Sukantsondhi/unifile \
-  --branch main \
-  --app-location "/" \
-  --output-location "/"
-```
-
-### Netlify / Vercel
-
-Simply connect your GitHub repository – no configuration needed.
-
----
-
-## 📁 Project Structure
-
-```
-unifile/
-├── index.html          # Main application
-├── styles.css          # All styles (dark/light mode)
-├── app.js              # Application logic
-├── documentation.html  # Detailed documentation page
-├── README.md           # This file
-└── LICENSE             # MIT License
-```
+| Category  | Input Formats  | Output Formats |
+| --------- | -------------- | -------------- |
+| Images    | 36 formats     | 8 formats      |
+| Documents | 13 formats     | 4 formats      |
+| Audio     | 21 formats     | 8 formats      |
+| Video     | 22 formats     | 6 formats      |
+| **Total** | **92 formats** | **26 formats** |
 
 ---
 
@@ -249,7 +194,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - Website: [sukantsondhi.com](https://sukantsondhi.com)
 - GitHub: [@Sukantsondhi](https://github.com/Sukantsondhi)
-- Email: sukantsondhi@gmail.com
+- Email: unifile@sukantsondhi.com
 
 ---
 
