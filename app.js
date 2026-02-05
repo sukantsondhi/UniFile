@@ -274,10 +274,66 @@ function readFileAsText(file) {
 function loadImage(src) {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = reject;
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      // Ensure we have valid dimensions
+      if (img.width === 0 || img.height === 0) {
+        // Try to get natural dimensions
+        if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+          resolve(img);
+        } else {
+          reject(new Error("Image has zero dimensions"));
+        }
+      } else {
+        resolve(img);
+      }
+    };
+    img.onerror = (e) => reject(new Error("Failed to load image"));
     img.src = src;
   });
+}
+
+// Escape HTML special characters
+function escapeHtml(text) {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Simple CSV parser
+function parseCSV(content, delimiter = ",") {
+  const rows = [];
+  const lines = content.split(/\r?\n/);
+
+  for (const line of lines) {
+    if (line.trim() === "") continue;
+
+    const row = [];
+    let current = "";
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === delimiter && !inQuotes) {
+        row.push(current.trim());
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+    row.push(current.trim());
+    rows.push(row);
+  }
+
+  return rows;
 }
 
 async function convertHeicToJpeg(file) {
@@ -719,6 +775,7 @@ function setupDropZone() {
 
 async function processImages() {
   const results = [];
+  const errors = [];
   const total = state.files.length;
 
   for (let i = 0; i < state.files.length; i++) {
@@ -730,13 +787,31 @@ async function processImages() {
 
       // Handle HEIC
       if (["heic", "heif"].includes(fileData.extension)) {
-        const jpegBlob = await convertHeicToJpeg(fileData.file);
-        imageSrc = URL.createObjectURL(jpegBlob);
+        try {
+          const jpegBlob = await convertHeicToJpeg(fileData.file);
+          imageSrc = URL.createObjectURL(jpegBlob);
+        } catch (heicError) {
+          console.warn(
+            `HEIC conversion failed for ${fileData.name}:`,
+            heicError,
+          );
+          errors.push(fileData.name);
+          continue;
+        }
       } else {
         imageSrc = fileData.preview || (await readFileAsDataURL(fileData.file));
       }
 
-      const img = await loadImage(imageSrc);
+      let img;
+      try {
+        img = await loadImage(imageSrc);
+      } catch (loadError) {
+        console.warn(`Could not load image ${fileData.name}:`, loadError);
+        errors.push(fileData.name);
+        if (imageSrc.startsWith("blob:")) URL.revokeObjectURL(imageSrc);
+        continue;
+      }
+
       const canvas = document.createElement("canvas");
 
       // Handle ICO sizing
@@ -744,14 +819,14 @@ async function processImages() {
         canvas.width = 256;
         canvas.height = 256;
       } else {
-        canvas.width = img.width;
-        canvas.height = img.height;
+        canvas.width = img.width || 800;
+        canvas.height = img.height || 600;
       }
 
       const ctx = canvas.getContext("2d");
 
-      // White background for JPEG
-      if (state.outputFormat === "jpg") {
+      // White background for JPEG (to handle transparency)
+      if (state.outputFormat === "jpg" || state.outputFormat === "jpeg") {
         ctx.fillStyle = "#FFFFFF";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
@@ -765,13 +840,15 @@ async function processImages() {
 
       const mimeType =
         FORMATS.images.mimeTypes[state.outputFormat] || "image/png";
-      const quality = ["jpg", "webp", "avif"].includes(state.outputFormat)
+      const quality = ["jpg", "jpeg", "webp", "avif"].includes(
+        state.outputFormat,
+      )
         ? state.quality / 100
         : undefined;
 
       const blob = await new Promise((resolve, reject) => {
         canvas.toBlob(
-          (b) => (b ? resolve(b) : reject(new Error("Failed"))),
+          (b) => (b ? resolve(b) : reject(new Error("Canvas toBlob failed"))),
           mimeType,
           quality,
         );
@@ -785,7 +862,15 @@ async function processImages() {
       if (imageSrc.startsWith("blob:")) URL.revokeObjectURL(imageSrc);
     } catch (error) {
       console.error(`Error converting ${fileData.name}:`, error);
+      errors.push(fileData.name);
     }
+  }
+
+  // Notify user of any errors
+  if (errors.length > 0 && results.length > 0) {
+    console.warn(
+      `Failed to convert ${errors.length} file(s): ${errors.join(", ")}`,
+    );
   }
 
   return results;
@@ -801,45 +886,41 @@ async function mergeImagesToPdf() {
     showProgress(true, "Merging...", fileData.name, ((i + 1) / total) * 100);
 
     try {
-      let imageBytes;
-      let imageType = fileData.extension;
-
-      // Handle HEIC
-      if (["heic", "heif"].includes(fileData.extension)) {
-        const jpegBlob = await convertHeicToJpeg(fileData.file);
-        imageBytes = await jpegBlob.arrayBuffer();
-        imageType = "jpg";
-      } else {
-        imageBytes = await readFileAsArrayBuffer(fileData.file);
-      }
+      // Always convert via canvas for reliability - this ensures consistent results
+      const { imageBytes, width, height, format } =
+        await convertFileToImageBytes(fileData);
 
       let image;
-      if (["jpg", "jpeg"].includes(imageType)) {
+      if (format === "jpeg") {
         image = await mergedPdf.embedJpg(imageBytes);
-      } else if (imageType === "png") {
-        image = await mergedPdf.embedPng(imageBytes);
       } else {
-        // Convert other formats to PNG
-        const dataUrl = await readFileAsDataURL(fileData.file);
-        const img = await loadImage(dataUrl);
-        const canvas = document.createElement("canvas");
-        canvas.width = img.width;
-        canvas.height = img.height;
-        canvas.getContext("2d").drawImage(img, 0, 0);
-        const pngDataUrl = canvas.toDataURL("image/png");
-        const pngBytes = Uint8Array.from(atob(pngDataUrl.split(",")[1]), (c) =>
-          c.charCodeAt(0),
-        );
-        image = await mergedPdf.embedPng(pngBytes);
+        image = await mergedPdf.embedPng(imageBytes);
       }
 
-      const page = mergedPdf.addPage([image.width, image.height]);
+      // Use the actual embedded image dimensions from pdf-lib
+      const imgWidth = image.width;
+      const imgHeight = image.height;
+
+      // Create page with image dimensions (limit to reasonable size)
+      const maxDim = 3000;
+      let pageWidth = imgWidth;
+      let pageHeight = imgHeight;
+
+      if (pageWidth > maxDim || pageHeight > maxDim) {
+        const scale = Math.min(maxDim / pageWidth, maxDim / pageHeight);
+        pageWidth = Math.round(pageWidth * scale);
+        pageHeight = Math.round(pageHeight * scale);
+      }
+
+      const page = mergedPdf.addPage([pageWidth, pageHeight]);
       page.drawImage(image, {
         x: 0,
         y: 0,
-        width: image.width,
-        height: image.height,
+        width: pageWidth,
+        height: pageHeight,
       });
+
+      console.log(`Added ${fileData.name} to PDF: ${pageWidth}x${pageHeight}`);
     } catch (error) {
       console.error(`Error processing ${fileData.name}:`, error);
     }
@@ -849,12 +930,81 @@ async function mergeImagesToPdf() {
   return new Blob([pdfBytes], { type: "application/pdf" });
 }
 
+// Convert any image file to bytes that can be embedded in PDF
+async function convertFileToImageBytes(fileData) {
+  // First, read the file and draw it to canvas
+  // This handles ALL formats consistently including GIF, WEBP, BMP, etc.
+
+  const dataUrl = await readFileAsDataURL(fileData.file);
+
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+
+    img.onload = () => {
+      try {
+        const width = img.naturalWidth || img.width;
+        const height = img.naturalHeight || img.height;
+
+        if (!width || !height || width <= 0 || height <= 0) {
+          reject(new Error(`Invalid image dimensions: ${width}x${height}`));
+          return;
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+
+        // White background (important for transparency and JPEG conversion)
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(0, 0, width, height);
+
+        // Draw the image
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Convert to JPEG for smaller file size and better compatibility
+        const jpegDataUrl = canvas.toDataURL("image/jpeg", 0.92);
+        const base64 = jpegDataUrl.split(",")[1];
+
+        if (!base64) {
+          reject(new Error("Failed to convert canvas to data URL"));
+          return;
+        }
+
+        // Decode base64 to bytes
+        const binaryString = atob(base64);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+
+        resolve({
+          imageBytes: bytes,
+          width: width,
+          height: height,
+          format: "jpeg",
+        });
+      } catch (err) {
+        reject(err);
+      }
+    };
+
+    img.onerror = () => {
+      reject(new Error(`Failed to load image: ${fileData.name}`));
+    };
+
+    img.src = dataUrl;
+  });
+}
+
 // ========================================
 // Document Processing
 // ========================================
 
 async function processDocuments() {
   const results = [];
+  const errors = [];
   const total = state.files.length;
 
   for (let i = 0; i < state.files.length; i++) {
@@ -882,15 +1032,46 @@ async function processDocuments() {
           outputContent = `<!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"><title>${fileData.name}</title></head>
-<body><pre>${content}</pre></body>
+<body><pre>${escapeHtml(content)}</pre></body>
 </html>`;
         } else if (fileData.extension === "json") {
+          let formattedJson;
+          try {
+            formattedJson = JSON.stringify(JSON.parse(content), null, 2);
+          } catch (e) {
+            formattedJson = content;
+          }
           outputContent = `<!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"><title>${fileData.name}</title>
 <style>pre{background:#f5f5f5;padding:20px;overflow:auto}</style>
 </head>
-<body><pre>${JSON.stringify(JSON.parse(content), null, 2)}</pre></body>
+<body><pre>${escapeHtml(formattedJson)}</pre></body>
+</html>`;
+        } else if (
+          fileData.extension === "csv" ||
+          fileData.extension === "tsv"
+        ) {
+          // Convert CSV/TSV to HTML table
+          const delimiter = fileData.extension === "tsv" ? "\t" : ",";
+          const rows = parseCSV(content, delimiter);
+          let tableHtml = "<table border='1' cellpadding='8' cellspacing='0'>";
+          rows.forEach((row, idx) => {
+            const tag = idx === 0 ? "th" : "td";
+            tableHtml +=
+              "<tr>" +
+              row
+                .map((cell) => `<${tag}>${escapeHtml(cell)}</${tag}>`)
+                .join("") +
+              "</tr>";
+          });
+          tableHtml += "</table>";
+          outputContent = `<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>${fileData.name}</title>
+<style>table{border-collapse:collapse;width:100%}th,td{text-align:left}th{background:#f0f0f0}</style>
+</head>
+<body>${tableHtml}</body>
 </html>`;
         } else {
           outputContent = content;
@@ -902,7 +1083,19 @@ async function processDocuments() {
           const doc = new DOMParser().parseFromString(content, "text/html");
           outputContent = doc.body.textContent || "";
         } else if (fileData.extension === "json") {
-          outputContent = JSON.stringify(JSON.parse(content), null, 2);
+          try {
+            outputContent = JSON.stringify(JSON.parse(content), null, 2);
+          } catch (e) {
+            outputContent = content;
+          }
+        } else if (
+          fileData.extension === "csv" ||
+          fileData.extension === "tsv"
+        ) {
+          // Convert CSV/TSV to readable text
+          const delimiter = fileData.extension === "tsv" ? "\t" : ",";
+          const rows = parseCSV(content, delimiter);
+          outputContent = rows.map((row) => row.join(" | ")).join("\n");
         } else {
           outputContent = content;
         }
@@ -912,10 +1105,31 @@ async function processDocuments() {
         if (fileData.extension === "txt") {
           outputContent = content;
         } else if (fileData.extension === "json") {
-          outputContent =
-            "```json\n" +
-            JSON.stringify(JSON.parse(content), null, 2) +
-            "\n```";
+          try {
+            outputContent =
+              "```json\n" +
+              JSON.stringify(JSON.parse(content), null, 2) +
+              "\n```";
+          } catch (e) {
+            outputContent = "```\n" + content + "\n```";
+          }
+        } else if (
+          fileData.extension === "csv" ||
+          fileData.extension === "tsv"
+        ) {
+          // Convert CSV/TSV to markdown table
+          const delimiter = fileData.extension === "tsv" ? "\t" : ",";
+          const rows = parseCSV(content, delimiter);
+          if (rows.length > 0) {
+            outputContent = "| " + rows[0].join(" | ") + " |\n";
+            outputContent +=
+              "| " + rows[0].map(() => "---").join(" | ") + " |\n";
+            for (let i = 1; i < rows.length; i++) {
+              outputContent += "| " + rows[i].join(" | ") + " |\n";
+            }
+          } else {
+            outputContent = content;
+          }
         } else {
           outputContent = content;
         }
@@ -967,7 +1181,15 @@ async function processDocuments() {
       });
     } catch (error) {
       console.error(`Error converting ${fileData.name}:`, error);
+      errors.push(fileData.name);
     }
+  }
+
+  // Notify about errors
+  if (errors.length > 0 && results.length > 0) {
+    console.warn(
+      `Failed to convert ${errors.length} file(s): ${errors.join(", ")}`,
+    );
   }
 
   return results;
@@ -985,37 +1207,104 @@ async function mergeDocumentsToPdf() {
 
     try {
       if (fileData.extension === "pdf") {
-        // Merge existing PDF
-        const pdfBytes = await readFileAsArrayBuffer(fileData.file);
-        const pdf = await PDFDocument.load(pdfBytes);
-        const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
-        pages.forEach((page) => mergedPdf.addPage(page));
+        // Merge existing PDF using robust approach
+        try {
+          await mergePdfIntoDocument(mergedPdf, fileData.file, fileData.name);
+        } catch (pdfError) {
+          console.error(`Could not merge PDF ${fileData.name}:`, pdfError);
+          // Add a placeholder page for corrupted/protected PDFs
+          const page = mergedPdf.addPage([612, 792]);
+          page.drawText(`Could not process: ${fileData.name}`, {
+            x: 50,
+            y: 700,
+            size: 12,
+            font: font,
+            color: rgb(0.6, 0.3, 0.1),
+          });
+          page.drawText(`Error: ${pdfError.message || "Unknown error"}`, {
+            x: 50,
+            y: 670,
+            size: 10,
+            font: font,
+            color: rgb(0.5, 0.5, 0.5),
+          });
+        }
       } else {
         // Convert text to PDF page
-        const content = await readFileAsText(fileData.file);
+        let content = await readFileAsText(fileData.file);
+
+        // Handle different formats
+        if (fileData.extension === "json") {
+          try {
+            content = JSON.stringify(JSON.parse(content), null, 2);
+          } catch (e) {
+            // Keep original content if JSON parsing fails
+          }
+        } else if (["html", "htm"].includes(fileData.extension)) {
+          const doc = new DOMParser().parseFromString(content, "text/html");
+          content = doc.body.textContent || content;
+        } else if (fileData.extension === "md") {
+          // Strip basic markdown formatting
+          content = content
+            .replace(/#{1,6}\s/g, "")
+            .replace(/\*\*(.+?)\*\*/g, "$1")
+            .replace(/\*(.+?)\*/g, "$1")
+            .replace(/\[(.+?)\]\(.+?\)/g, "$1");
+        }
+
         const lines = content.split("\n");
-        const fontSize = 12;
+        const fontSize = 11;
         const margin = 50;
         const pageHeight = 792;
-        const lineHeight = fontSize * 1.5;
+        const lineHeight = fontSize * 1.4;
+        const maxCharsPerLine = 85;
 
         let page = mergedPdf.addPage([612, pageHeight]);
         let y = pageHeight - margin;
 
+        // Add filename header
+        page.drawText(fileData.name, {
+          x: margin,
+          y: y,
+          size: 10,
+          font: font,
+          color: rgb(0.4, 0.4, 0.4),
+        });
+        y -= lineHeight * 2;
+
         for (const line of lines) {
-          if (y < margin + lineHeight) {
-            page = mergedPdf.addPage([612, pageHeight]);
-            y = pageHeight - margin;
+          // Word wrap long lines
+          const wrappedLines = [];
+          if (line.length > maxCharsPerLine) {
+            for (let j = 0; j < line.length; j += maxCharsPerLine) {
+              wrappedLines.push(line.substring(j, j + maxCharsPerLine));
+            }
+          } else {
+            wrappedLines.push(line);
           }
 
-          page.drawText(line.substring(0, 80), {
-            x: margin,
-            y: y,
-            size: fontSize,
-            font: font,
-            color: rgb(0, 0, 0),
-          });
-          y -= lineHeight;
+          for (const wrappedLine of wrappedLines) {
+            if (y < margin + lineHeight) {
+              page = mergedPdf.addPage([612, pageHeight]);
+              y = pageHeight - margin;
+            }
+
+            // Sanitize text for PDF (remove special characters that cause issues)
+            const sanitized = wrappedLine.replace(/[\x00-\x1F\x7F]/g, "");
+
+            try {
+              page.drawText(sanitized, {
+                x: margin,
+                y: y,
+                size: fontSize,
+                font: font,
+                color: rgb(0, 0, 0),
+              });
+            } catch (e) {
+              // Skip lines with unsupported characters
+            }
+            y -= lineHeight;
+          }
         }
       }
     } catch (error) {
@@ -1036,6 +1325,7 @@ async function mergeAllToPdf() {
   const mergedPdf = await PDFDocument.create();
   const font = await mergedPdf.embedFont(StandardFonts.Helvetica);
   const total = state.files.length;
+  let successCount = 0;
 
   for (let i = 0; i < state.files.length; i++) {
     const fileData = state.files[i];
@@ -1051,15 +1341,35 @@ async function mergeAllToPdf() {
       if (fileData.category === "images") {
         // Embed image as PDF page
         await addImageToPdf(mergedPdf, fileData);
+        successCount++;
       } else if (fileData.extension === "pdf") {
-        // Merge existing PDF pages
-        const pdfBytes = await readFileAsArrayBuffer(fileData.file);
-        const pdf = await PDFDocument.load(pdfBytes);
-        const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
-        pages.forEach((page) => mergedPdf.addPage(page));
+        // Merge existing PDF pages using robust approach
+        try {
+          await mergePdfIntoDocument(mergedPdf, fileData.file, fileData.name);
+          successCount++;
+        } catch (pdfError) {
+          console.error(`Could not merge PDF ${fileData.name}:`, pdfError);
+          // Add a placeholder page for corrupted/protected PDFs
+          const page = mergedPdf.addPage([612, 792]);
+          page.drawText(`Could not process: ${fileData.name}`, {
+            x: 50,
+            y: 700,
+            size: 12,
+            font: font,
+            color: rgb(0.6, 0.3, 0.1),
+          });
+          page.drawText(`Error: ${pdfError.message || "Unknown error"}`, {
+            x: 50,
+            y: 670,
+            size: 10,
+            font: font,
+            color: rgb(0.5, 0.5, 0.5),
+          });
+        }
       } else if (fileData.category === "documents") {
         // Convert text document to PDF pages
         await addTextToPdf(mergedPdf, fileData, font);
+        successCount++;
       } else {
         // For audio/video, add info page
         const page = mergedPdf.addPage([612, 792]);
@@ -1084,18 +1394,31 @@ async function mergeAllToPdf() {
           font: font,
           color: rgb(0.6, 0.6, 0.6),
         });
+        successCount++;
       }
     } catch (error) {
       console.error(`Error processing ${fileData.name}:`, error);
-      // Add error page
-      const page = mergedPdf.addPage([612, 792]);
-      page.drawText(`Error processing: ${fileData.name}`, {
-        x: 50,
-        y: 700,
-        size: 12,
-        font: font,
-        color: rgb(0.8, 0.2, 0.2),
-      });
+      // Only add error page for truly unrecoverable errors
+      try {
+        const page = mergedPdf.addPage([612, 792]);
+        page.drawText(`Could not process: ${fileData.name}`, {
+          x: 50,
+          y: 700,
+          size: 12,
+          font: font,
+          color: rgb(0.7, 0.3, 0.1),
+        });
+        const errorMsg = error.message || "Unknown error";
+        page.drawText(`Reason: ${errorMsg.substring(0, 60)}`, {
+          x: 50,
+          y: 670,
+          size: 10,
+          font: font,
+          color: rgb(0.5, 0.5, 0.5),
+        });
+      } catch (pageError) {
+        console.error("Failed to add error page:", pageError);
+      }
     }
   }
 
@@ -1103,49 +1426,291 @@ async function mergeAllToPdf() {
   return new Blob([pdfBytes], { type: "application/pdf" });
 }
 
-async function addImageToPdf(pdfDoc, fileData) {
-  let imageBytes;
-  let imageType = fileData.extension;
+// Robust PDF merging function with multiple fallback approaches
+async function mergePdfIntoDocument(targetPdf, sourceFile, fileName) {
+  const { PDFDocument } = PDFLib;
 
-  // Handle HEIC
-  if (["heic", "heif"].includes(fileData.extension)) {
-    const jpegBlob = await convertHeicToJpeg(fileData.file);
-    imageBytes = await jpegBlob.arrayBuffer();
-    imageType = "jpg";
-  } else {
-    imageBytes = await readFileAsArrayBuffer(fileData.file);
+  // Read the file as Uint8Array
+  const fileBytes = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const arrayBuffer = reader.result;
+      resolve(new Uint8Array(arrayBuffer));
+    };
+    reader.onerror = () => reject(new Error("Failed to read file"));
+    reader.readAsArrayBuffer(sourceFile);
+  });
+
+  console.log(`Loading PDF: ${fileName}, size: ${fileBytes.length} bytes`);
+
+  // First try: Direct pdf-lib merging (fastest, preserves vectors)
+  let directMergeSucceeded = false;
+  try {
+    const sourcePdf = await PDFDocument.load(fileBytes, {
+      ignoreEncryption: true,
+      updateMetadata: false,
+    });
+    const pageCount = sourcePdf.getPageCount();
+    console.log(`PDF ${fileName} has ${pageCount} pages (pdf-lib)`);
+
+    if (pageCount > 0) {
+      const pageIndices = sourcePdf.getPageIndices();
+      const copiedPages = await targetPdf.copyPages(sourcePdf, pageIndices);
+
+      for (const page of copiedPages) {
+        targetPdf.addPage(page);
+      }
+
+      console.log(
+        `Successfully merged ${pageCount} pages from ${fileName} (direct method)`,
+      );
+      directMergeSucceeded = true;
+      return;
+    }
+  } catch (directError) {
+    console.warn(
+      `Direct PDF merge failed for ${fileName}:`,
+      directError.message,
+    );
   }
 
-  let image;
-  try {
-    if (["jpg", "jpeg"].includes(imageType)) {
-      image = await pdfDoc.embedJpg(imageBytes);
-    } else if (imageType === "png") {
-      image = await pdfDoc.embedPng(imageBytes);
-    } else {
-      // Convert other formats to PNG via canvas
-      const dataUrl = await readFileAsDataURL(fileData.file);
-      const img = await loadImage(dataUrl);
-      const canvas = document.createElement("canvas");
-      canvas.width = img.width;
-      canvas.height = img.height;
-      canvas.getContext("2d").drawImage(img, 0, 0);
-      const pngDataUrl = canvas.toDataURL("image/png");
-      const pngBytes = Uint8Array.from(atob(pngDataUrl.split(",")[1]), (c) =>
-        c.charCodeAt(0),
+  // Fallback: Use PDF.js to render pages as images (handles protected/complex PDFs)
+  if (typeof pdfjsLib !== "undefined") {
+    console.log(`Trying PDF.js fallback for ${fileName}`);
+    try {
+      await mergePdfViaRendering(targetPdf, fileBytes, fileName);
+      return;
+    } catch (renderError) {
+      console.error(`PDF.js rendering failed for ${fileName}:`, renderError);
+    }
+  }
+
+  throw new Error("Could not merge PDF - all methods failed");
+}
+
+// Fallback: Render PDF pages to images using PDF.js, then embed
+async function mergePdfViaRendering(targetPdf, pdfBytes, fileName) {
+  // Try multiple loading strategies for protected/complex PDFs
+  let pdfDoc = null;
+  const loadingOptions = [
+    { data: pdfBytes },
+    { data: pdfBytes, password: "" },
+    { data: pdfBytes, disableAutoFetch: true },
+    { data: pdfBytes, disableStream: true },
+    { data: pdfBytes, isEvalSupported: false },
+  ];
+
+  for (const options of loadingOptions) {
+    try {
+      const loadingTask = pdfjsLib.getDocument(options);
+
+      // Handle password-protected PDFs
+      loadingTask.onPassword = (updateCallback, reason) => {
+        console.log(`PDF ${fileName} requires password, trying empty...`);
+        updateCallback("");
+      };
+
+      pdfDoc = await loadingTask.promise;
+      console.log(
+        `PDF.js loaded ${fileName} with options:`,
+        Object.keys(options).join(", "),
       );
-      image = await pdfDoc.embedPng(pngBytes);
+      break;
+    } catch (loadError) {
+      console.warn(
+        `PDF.js load attempt failed for ${fileName}:`,
+        loadError.message,
+      );
+      continue;
+    }
+  }
+
+  if (!pdfDoc) {
+    throw new Error("PDF.js could not load the document with any strategy");
+  }
+
+  const numPages = pdfDoc.numPages;
+  console.log(`PDF.js loaded ${fileName}: ${numPages} pages`);
+
+  if (numPages === 0) {
+    throw new Error("PDF has no pages");
+  }
+
+  for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+    try {
+      const page = await pdfDoc.getPage(pageNum);
+
+      // Render at 2x scale for good quality (increase for bank statements)
+      const scale = 2.5;
+      const viewport = page.getViewport({ scale });
+
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.floor(viewport.width);
+      canvas.height = Math.floor(viewport.height);
+
+      const ctx = canvas.getContext("2d");
+      // White background
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Render with high quality settings
+      const renderContext = {
+        canvasContext: ctx,
+        viewport: viewport,
+        enableWebGL: false,
+        renderInteractiveForms: true,
+      };
+
+      await page.render(renderContext).promise;
+
+      // Convert canvas to JPEG with high quality
+      const jpegDataUrl = canvas.toDataURL("image/jpeg", 0.95);
+      const base64 = jpegDataUrl.split(",")[1];
+
+      if (!base64) {
+        console.error(`Failed to render page ${pageNum} of ${fileName}`);
+        continue;
+      }
+
+      const binaryString = atob(base64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      // Embed in target PDF
+      const image = await targetPdf.embedJpg(bytes);
+
+      // Create page with original dimensions (not scaled)
+      const pageWidth = viewport.width / scale;
+      const pageHeight = viewport.height / scale;
+
+      const newPage = targetPdf.addPage([pageWidth, pageHeight]);
+      newPage.drawImage(image, {
+        x: 0,
+        y: 0,
+        width: pageWidth,
+        height: pageHeight,
+      });
+
+      console.log(`Rendered page ${pageNum}/${numPages} of ${fileName}`);
+    } catch (pageError) {
+      console.error(
+        `Error rendering page ${pageNum} of ${fileName}:`,
+        pageError,
+      );
+      // Continue with other pages even if one fails
+    }
+  }
+
+  console.log(
+    `Successfully rendered and merged ${numPages} pages from ${fileName}`,
+  );
+}
+
+async function addImageToPdf(pdfDoc, fileData) {
+  try {
+    // Use the same reliable canvas conversion for all image types
+    const { imageBytes, width, height, format } =
+      await convertFileToImageBytes(fileData);
+
+    let image;
+    if (format === "jpeg") {
+      image = await pdfDoc.embedJpg(imageBytes);
+    } else {
+      image = await pdfDoc.embedPng(imageBytes);
     }
 
-    const page = pdfDoc.addPage([image.width, image.height]);
+    // Use the actual embedded image dimensions from pdf-lib
+    const imgWidth = image.width;
+    const imgHeight = image.height;
+
+    // Create page with image dimensions (limit to reasonable size)
+    const maxDim = 3000;
+    let pageWidth = imgWidth;
+    let pageHeight = imgHeight;
+
+    if (pageWidth > maxDim || pageHeight > maxDim) {
+      const scale = Math.min(maxDim / pageWidth, maxDim / pageHeight);
+      pageWidth = Math.round(pageWidth * scale);
+      pageHeight = Math.round(pageHeight * scale);
+    }
+
+    const page = pdfDoc.addPage([pageWidth, pageHeight]);
     page.drawImage(image, {
       x: 0,
       y: 0,
-      width: image.width,
-      height: image.height,
+      width: pageWidth,
+      height: pageHeight,
     });
+
+    console.log(
+      `Added image ${fileData.name} to PDF: ${pageWidth}x${pageHeight}`,
+    );
   } catch (error) {
+    console.error(`Failed to embed image ${fileData.name}:`, error);
     throw new Error(`Failed to embed image: ${error.message}`);
+  }
+}
+
+// Helper function to convert any image via canvas
+async function convertImageViaCanvas(file, pdfDoc, outputType = "png") {
+  try {
+    const dataUrl = await readFileAsDataURL(file);
+    const img = await loadImage(dataUrl);
+
+    // Use naturalWidth/naturalHeight as fallback
+    const width = img.naturalWidth || img.width || 800;
+    const height = img.naturalHeight || img.height || 600;
+
+    if (width === 0 || height === 0) {
+      throw new Error("Image has invalid dimensions");
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext("2d");
+
+    // Fill white background for JPEG (transparency issues)
+    if (outputType === "jpeg") {
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    ctx.drawImage(img, 0, 0, width, height);
+
+    // Convert canvas to blob synchronously using toDataURL
+    const mimeType = outputType === "jpeg" ? "image/jpeg" : "image/png";
+    const quality = outputType === "jpeg" ? 0.92 : 1.0;
+    const dataURL = canvas.toDataURL(mimeType, quality);
+
+    // Extract base64 data
+    const base64Data = dataURL.split(",")[1];
+    if (!base64Data) {
+      throw new Error("Failed to convert canvas to data URL");
+    }
+
+    // Convert base64 to Uint8Array
+    const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    // Embed in PDF
+    let image;
+    if (outputType === "jpeg") {
+      image = await pdfDoc.embedJpg(bytes);
+    } else {
+      image = await pdfDoc.embedPng(bytes);
+    }
+
+    return image;
+  } catch (error) {
+    console.error("convertImageViaCanvas error:", error);
+    throw error;
   }
 }
 

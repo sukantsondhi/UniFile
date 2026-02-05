@@ -218,6 +218,33 @@ body {
   height: 20px;
 }
 
+.coffee-link {
+  background: linear-gradient(135deg, #ff813f, #ff5f1f) !important;
+  color: white !important;
+  border: none !important;
+}
+
+.coffee-link:hover {
+  background: linear-gradient(135deg, #ff9f5f, #ff7f3f) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 129, 63, 0.4);
+}
+
+.coffee-link svg {
+  width: 18px;
+  height: 18px;
+  fill: white !important;
+}
+
+[data-theme="light"] .coffee-link {
+  background: linear-gradient(135deg, #ff813f, #ff5f1f) !important;
+  color: white !important;
+}
+
+[data-theme="light"] .coffee-link svg {
+  fill: white !important;
+}
+
 /* Theme Toggle Button */
 .theme-toggle {
   display: flex;
@@ -1520,6 +1547,15 @@ body {
 .footer-links svg {
   width: 18px;
   height: 18px;
+}
+
+.footer-coffee-link {
+  color: #ff5f1f !important;
+  font-weight: 600;
+}
+
+.footer-coffee-link:hover {
+  color: #e54500 !important;
 }
 
 .footer-privacy {
