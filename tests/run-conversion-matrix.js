@@ -376,7 +376,25 @@ async function run() {
   try {
     browser = await chromium.launch({ headless: true });
   } catch (error) {
-    browser = await chromium.launch({ channel: 'chrome', headless: true });
+    const message = error && typeof error.message === 'string' ? error.message : '';
+    const isMissingExecutable =
+      message.includes("Executable doesn't exist at") || message.includes('executablePath is missing');
+
+    if (!isMissingExecutable) {
+      // Not a "Chromium unavailable" error; rethrow to avoid masking real issues.
+      throw error;
+    }
+
+    try {
+      browser = await chromium.launch({ channel: 'chrome', headless: true });
+    } catch (chromeError) {
+      const combinedError = new Error(
+        'Failed to launch Playwright browser. Tried default Chromium and Chrome channel; both attempts failed.',
+      );
+      combinedError.chromiumError = error;
+      combinedError.chromeChannelError = chromeError;
+      throw combinedError;
+    }
   }
 
   try {
