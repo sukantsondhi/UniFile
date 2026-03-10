@@ -326,12 +326,14 @@ async function addFiles(fileList) {
       extension: ext,
       category: category,
       preview: null,
+      previewIsObjectUrl: false,
     };
 
     // Generate preview for images
     if (category === "images" && !["heic", "heif"].includes(ext)) {
       try {
-        fileData.preview = await readFileAsDataURL(file);
+        fileData.preview = URL.createObjectURL(file);
+        fileData.previewIsObjectUrl = true;
       } catch (e) {
         console.warn("Could not generate preview for:", file.name);
       }
@@ -360,12 +362,26 @@ async function addFiles(fileList) {
   updateUI();
 }
 
+function releaseFileResources(fileData) {
+  if (
+    fileData &&
+    fileData.preview &&
+    fileData.previewIsObjectUrl &&
+    fileData.preview.startsWith("blob:")
+  ) {
+    URL.revokeObjectURL(fileData.preview);
+  }
+}
+
 function removeFile(id) {
+  const fileToRemove = state.files.find((f) => f.id === id);
+  releaseFileResources(fileToRemove);
   state.files = state.files.filter((f) => f.id !== id);
   updateUI();
 }
 
 function clearAllFiles() {
+  state.files.forEach(releaseFileResources);
   state.files = [];
   elements.formatNote.classList.add("hidden");
   elements.formatNote.textContent = "";
@@ -447,6 +463,9 @@ function switchMode(mode) {
       );
 
       if (keptFiles.length !== state.files.length) {
+        state.files
+          .filter((file) => !keptFiles.includes(file))
+          .forEach(releaseFileResources);
         state.files = keptFiles;
         elements.formatNote.textContent =
           "Removed files that are not supported in convert mode for this category.";
@@ -775,12 +794,14 @@ async function processImages() {
 
     try {
       let imageSrc;
+      let revokeTempSrc = false;
 
       // Handle HEIC
       if (["heic", "heif"].includes(fileData.extension)) {
         try {
           const jpegBlob = await convertHeicToJpeg(fileData.file);
           imageSrc = URL.createObjectURL(jpegBlob);
+          revokeTempSrc = true;
         } catch (heicError) {
           console.warn(
             `HEIC conversion failed for ${fileData.name}:`,
@@ -799,7 +820,9 @@ async function processImages() {
       } catch (loadError) {
         console.warn(`Could not load image ${fileData.name}:`, loadError);
         errors.push(fileData.name);
-        if (imageSrc.startsWith("blob:")) URL.revokeObjectURL(imageSrc);
+        if (revokeTempSrc && imageSrc.startsWith("blob:")) {
+          URL.revokeObjectURL(imageSrc);
+        }
         continue;
       }
 
@@ -848,7 +871,9 @@ async function processImages() {
         name: fileData.name.replace(/\.[^.]+$/, `.${state.outputFormat}`),
       });
 
-      if (imageSrc.startsWith("blob:")) URL.revokeObjectURL(imageSrc);
+      if (revokeTempSrc && imageSrc.startsWith("blob:")) {
+        URL.revokeObjectURL(imageSrc);
+      }
     } catch (error) {
       console.error(`Error converting ${fileData.name}:`, error);
       errors.push(fileData.name);
@@ -859,6 +884,45 @@ async function processImages() {
   if (errors.length > 0 && results.length > 0) {
     console.warn(
       `Failed to convert ${errors.length} file(s): ${errors.join(", ")}`,
+    );
+  }
+
+  return results;
+}
+
+async function convertImagesToPdfFiles() {
+  const { PDFDocument } = PDFLib;
+  const results = [];
+  const errors = [];
+  const total = state.files.length;
+
+  for (let i = 0; i < state.files.length; i++) {
+    const fileData = state.files[i];
+    showProgress(
+      true,
+      "Converting...",
+      `${fileData.name} (${i + 1}/${total})`,
+      ((i + 1) / total) * 100,
+    );
+
+    try {
+      const pdfDoc = await PDFDocument.create();
+      await addImageToPdf(pdfDoc, fileData);
+      const pdfBytes = await pdfDoc.save();
+
+      results.push({
+        blob: new Blob([pdfBytes], { type: "application/pdf" }),
+        name: fileData.name.replace(/\.[^.]+$/, ".pdf"),
+      });
+    } catch (error) {
+      console.error(`Error converting ${fileData.name} to PDF:`, error);
+      errors.push(fileData.name);
+    }
+  }
+
+  if (errors.length > 0 && results.length > 0) {
+    console.warn(
+      `Failed to convert ${errors.length} image file(s) to PDF: ${errors.join(", ")}`,
     );
   }
 
@@ -1932,8 +1996,7 @@ async function processFiles() {
 
       if (state.category === "images") {
         if (state.outputFormat === "pdf") {
-          result = await mergeImagesToPdf();
-          results = [{ blob: result, name: "converted.pdf" }];
+          results = await convertImagesToPdfFiles();
         } else {
           results = await processImages();
         }
