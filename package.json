@@ -1,0 +1,30 @@
+{
+  "name": "unifile",
+  "version": "1.0.0",
+  "description": "Local tooling for UniFile conversion matrix testing.",
+  "private": true,
+  "main": "app.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "npm run test:conversion",
+    "test:assets": "powershell -ExecutionPolicy Bypass -File tests/scripts_setup_assets.ps1",
+    "test:conversion": "node tests/run-conversion-matrix.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sukantsondhi/UniFile.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/sukantsondhi/UniFile/issues"
+  },
+  "homepage": "https://github.com/sukantsondhi/UniFile#readme",
+  "devDependencies": {
+    "playwright": "^1.58.2"
+  }
+}

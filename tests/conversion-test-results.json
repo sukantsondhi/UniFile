@@ -1,0 +1,573 @@
+{
+  "startedAt": "2026-03-10T20:06:29.645Z",
+  "endedAt": "2026-03-10T20:06:50.382Z",
+  "results": [
+    {
+      "category": "images",
+      "input": "sample.png",
+      "output": "png",
+      "status": "passed",
+      "detail": "sample_png__to__png__sample.png"
+    },
+    {
+      "category": "images",
+      "input": "sample.png",
+      "output": "jpg",
+      "status": "passed",
+      "detail": "sample_png__to__jpg__sample.jpg"
+    },
+    {
+      "category": "images",
+      "input": "sample.png",
+      "output": "webp",
+      "status": "passed",
+      "detail": "sample_png__to__webp__sample.webp"
+    },
+    {
+      "category": "images",
+      "input": "sample.png",
+      "output": "pdf",
+      "status": "passed",
+      "detail": "sample_png__to__pdf__converted.pdf"
+    },
+    {
+      "category": "images",
+      "input": "sample.jpg",
+      "output": "png",
+      "status": "passed",
+      "detail": "sample_jpg__to__png__sample.png"
+    },
+    {
+      "category": "images",
+      "input": "sample.jpg",
+      "output": "jpg",
+      "status": "passed",
+      "detail": "sample_jpg__to__jpg__sample.jpg"
+    },
+    {
+      "category": "images",
+      "input": "sample.jpg",
+      "output": "webp",
+      "status": "passed",
+      "detail": "sample_jpg__to__webp__sample.webp"
+    },
+    {
+      "category": "images",
+      "input": "sample.jpg",
+      "output": "pdf",
+      "status": "passed",
+      "detail": "sample_jpg__to__pdf__converted.pdf"
+    },
+    {
+      "category": "images",
+      "input": "sample.jpeg",
+      "output": "png",
+      "status": "passed",
+      "detail": "sample_jpeg__to__png__sample.png"
+    },
+    {
+      "category": "images",
+      "input": "sample.jpeg",
+      "output": "jpg",
+      "status": "passed",
+      "detail": "sample_jpeg__to__jpg__sample.jpg"
+    },
+    {
+      "category": "images",
+      "input": "sample.jpeg",
+      "output": "webp",
+      "status": "passed",
+      "detail": "sample_jpeg__to__webp__sample.webp"
+    },
+    {
+      "category": "images",
+      "input": "sample.jpeg",
+      "output": "pdf",
+      "status": "passed",
+      "detail": "sample_jpeg__to__pdf__converted.pdf"
+    },
+    {
+      "category": "images",
+      "input": "sample.webp",
+      "output": "png",
+      "status": "passed",
+      "detail": "sample_webp__to__png__sample.png"
+    },
+    {
+      "category": "images",
+      "input": "sample.webp",
+      "output": "jpg",
+      "status": "passed",
+      "detail": "sample_webp__to__jpg__sample.jpg"
+    },
+    {
+      "category": "images",
+      "input": "sample.webp",
+      "output": "webp",
+      "status": "passed",
+      "detail": "sample_webp__to__webp__sample.webp"
+    },
+    {
+      "category": "images",
+      "input": "sample.webp",
+      "output": "pdf",
+      "status": "passed",
+      "detail": "sample_webp__to__pdf__converted.pdf"
+    },
+    {
+      "category": "images",
+      "input": "sample.gif",
+      "output": "png",
+      "status": "passed",
+      "detail": "sample_gif__to__png__sample.png"
+    },
+    {
+      "category": "images",
+      "input": "sample.gif",
+      "output": "jpg",
+      "status": "passed",
+      "detail": "sample_gif__to__jpg__sample.jpg"
+    },
+    {
+      "category": "images",
+      "input": "sample.gif",
+      "output": "webp",
+      "status": "passed",
+      "detail": "sample_gif__to__webp__sample.webp"
+    },
+    {
+      "category": "images",
+      "input": "sample.gif",
+      "output": "pdf",
+      "status": "passed",
+      "detail": "sample_gif__to__pdf__converted.pdf"
+    },
+    {
+      "category": "images",
+      "input": "sample.bmp",
+      "output": "png",
+      "status": "passed",
+      "detail": "sample_bmp__to__png__sample.png"
+    },
+    {
+      "category": "images",
+      "input": "sample.bmp",
+      "output": "jpg",
+      "status": "passed",
+      "detail": "sample_bmp__to__jpg__sample.jpg"
+    },
+    {
+      "category": "images",
+      "input": "sample.bmp",
+      "output": "webp",
+      "status": "passed",
+      "detail": "sample_bmp__to__webp__sample.webp"
+    },
+    {
+      "category": "images",
+      "input": "sample.bmp",
+      "output": "pdf",
+      "status": "passed",
+      "detail": "sample_bmp__to__pdf__converted.pdf"
+    },
+    {
+      "category": "images",
+      "input": "sample.ico",
+      "output": "png",
+      "status": "passed",
+      "detail": "sample_ico__to__png__sample.png"
+    },
+    {
+      "category": "images",
+      "input": "sample.ico",
+      "output": "jpg",
+      "status": "passed",
+      "detail": "sample_ico__to__jpg__sample.jpg"
+    },
+    {
+      "category": "images",
+      "input": "sample.ico",
+      "output": "webp",
+      "status": "passed",
+      "detail": "sample_ico__to__webp__sample.webp"
+    },
+    {
+      "category": "images",
+      "input": "sample.ico",
+      "output": "pdf",
+      "status": "passed",
+      "detail": "sample_ico__to__pdf__converted.pdf"
+    },
+    {
+      "category": "images",
+      "input": "sample.svg",
+      "output": "png",
+      "status": "passed",
+      "detail": "sample_svg__to__png__sample.png"
+    },
+    {
+      "category": "images",
+      "input": "sample.svg",
+      "output": "jpg",
+      "status": "passed",
+      "detail": "sample_svg__to__jpg__sample.jpg"
+    },
+    {
+      "category": "images",
+      "input": "sample.svg",
+      "output": "webp",
+      "status": "passed",
+      "detail": "sample_svg__to__webp__sample.webp"
+    },
+    {
+      "category": "images",
+      "input": "sample.svg",
+      "output": "pdf",
+      "status": "passed",
+      "detail": "sample_svg__to__pdf__converted.pdf"
+    },
+    {
+      "category": "images",
+      "input": "sample.heic",
+      "output": "png",
+      "status": "passed",
+      "detail": "sample_heic__to__png__sample.png"
+    },
+    {
+      "category": "images",
+      "input": "sample.heic",
+      "output": "jpg",
+      "status": "passed",
+      "detail": "sample_heic__to__jpg__sample.jpg"
+    },
+    {
+      "category": "images",
+      "input": "sample.heic",
+      "output": "webp",
+      "status": "passed",
+      "detail": "sample_heic__to__webp__sample.webp"
+    },
+    {
+      "category": "images",
+      "input": "sample.heic",
+      "output": "pdf",
+      "status": "passed",
+      "detail": "sample_heic__to__pdf__converted.pdf"
+    },
+    {
+      "category": "images",
+      "input": "sample.heif",
+      "output": "png",
+      "status": "passed",
+      "detail": "sample_heif__to__png__sample.png"
+    },
+    {
+      "category": "images",
+      "input": "sample.heif",
+      "output": "jpg",
+      "status": "passed",
+      "detail": "sample_heif__to__jpg__sample.jpg"
+    },
+    {
+      "category": "images",
+      "input": "sample.heif",
+      "output": "webp",
+      "status": "passed",
+      "detail": "sample_heif__to__webp__sample.webp"
+    },
+    {
+      "category": "images",
+      "input": "sample.heif",
+      "output": "pdf",
+      "status": "passed",
+      "detail": "sample_heif__to__pdf__converted.pdf"
+    },
+    {
+      "category": "documents",
+      "input": "sample.txt",
+      "output": "pdf",
+      "status": "passed",
+      "detail": "sample_txt__to__pdf__sample.pdf"
+    },
+    {
+      "category": "documents",
+      "input": "sample.txt",
+      "output": "txt",
+      "status": "passed",
+      "detail": "sample_txt__to__txt__sample.txt"
+    },
+    {
+      "category": "documents",
+      "input": "sample.txt",
+      "output": "html",
+      "status": "passed",
+      "detail": "sample_txt__to__html__sample.html"
+    },
+    {
+      "category": "documents",
+      "input": "sample.txt",
+      "output": "md",
+      "status": "passed",
+      "detail": "sample_txt__to__md__sample.md"
+    },
+    {
+      "category": "documents",
+      "input": "sample.md",
+      "output": "pdf",
+      "status": "passed",
+      "detail": "sample_md__to__pdf__sample.pdf"
+    },
+    {
+      "category": "documents",
+      "input": "sample.md",
+      "output": "txt",
+      "status": "passed",
+      "detail": "sample_md__to__txt__sample.txt"
+    },
+    {
+      "category": "documents",
+      "input": "sample.md",
+      "output": "html",
+      "status": "passed",
+      "detail": "sample_md__to__html__sample.html"
+    },
+    {
+      "category": "documents",
+      "input": "sample.md",
+      "output": "md",
+      "status": "passed",
+      "detail": "sample_md__to__md__sample.md"
+    },
+    {
+      "category": "documents",
+      "input": "sample.html",
+      "output": "pdf",
+      "status": "passed",
+      "detail": "sample_html__to__pdf__sample.pdf"
+    },
+    {
+      "category": "documents",
+      "input": "sample.html",
+      "output": "txt",
+      "status": "passed",
+      "detail": "sample_html__to__txt__sample.txt"
+    },
+    {
+      "category": "documents",
+      "input": "sample.html",
+      "output": "html",
+      "status": "passed",
+      "detail": "sample_html__to__html__sample.html"
+    },
+    {
+      "category": "documents",
+      "input": "sample.html",
+      "output": "md",
+      "status": "passed",
+      "detail": "sample_html__to__md__sample.md"
+    },
+    {
+      "category": "documents",
+      "input": "sample.htm",
+      "output": "pdf",
+      "status": "passed",
+      "detail": "sample_htm__to__pdf__sample.pdf"
+    },
+    {
+      "category": "documents",
+      "input": "sample.htm",
+      "output": "txt",
+      "status": "passed",
+      "detail": "sample_htm__to__txt__sample.txt"
+    },
+    {
+      "category": "documents",
+      "input": "sample.htm",
+      "output": "html",
+      "status": "passed",
+      "detail": "sample_htm__to__html__sample.html"
+    },
+    {
+      "category": "documents",
+      "input": "sample.htm",
+      "output": "md",
+      "status": "passed",
+      "detail": "sample_htm__to__md__sample.md"
+    },
+    {
+      "category": "documents",
+      "input": "sample.rtf",
+      "output": "pdf",
+      "status": "passed",
+      "detail": "sample_rtf__to__pdf__sample.pdf"
+    },
+    {
+      "category": "documents",
+      "input": "sample.rtf",
+      "output": "txt",
+      "status": "passed",
+      "detail": "sample_rtf__to__txt__sample.txt"
+    },
+    {
+      "category": "documents",
+      "input": "sample.rtf",
+      "output": "html",
+      "status": "passed",
+      "detail": "sample_rtf__to__html__sample.html"
+    },
+    {
+      "category": "documents",
+      "input": "sample.rtf",
+      "output": "md",
+      "status": "passed",
+      "detail": "sample_rtf__to__md__sample.md"
+    },
+    {
+      "category": "documents",
+      "input": "sample.csv",
+      "output": "pdf",
+      "status": "passed",
+      "detail": "sample_csv__to__pdf__sample.pdf"
+    },
+    {
+      "category": "documents",
+      "input": "sample.csv",
+      "output": "txt",
+      "status": "passed",
+      "detail": "sample_csv__to__txt__sample.txt"
+    },
+    {
+      "category": "documents",
+      "input": "sample.csv",
+      "output": "html",
+      "status": "passed",
+      "detail": "sample_csv__to__html__sample.html"
+    },
+    {
+      "category": "documents",
+      "input": "sample.csv",
+      "output": "md",
+      "status": "passed",
+      "detail": "sample_csv__to__md__sample.md"
+    },
+    {
+      "category": "documents",
+      "input": "sample.tsv",
+      "output": "pdf",
+      "status": "passed",
+      "detail": "sample_tsv__to__pdf__sample.pdf"
+    },
+    {
+      "category": "documents",
+      "input": "sample.tsv",
+      "output": "txt",
+      "status": "passed",
+      "detail": "sample_tsv__to__txt__sample.txt"
+    },
+    {
+      "category": "documents",
+      "input": "sample.tsv",
+      "output": "html",
+      "status": "passed",
+      "detail": "sample_tsv__to__html__sample.html"
+    },
+    {
+      "category": "documents",
+      "input": "sample.tsv",
+      "output": "md",
+      "status": "passed",
+      "detail": "sample_tsv__to__md__sample.md"
+    },
+    {
+      "category": "documents",
+      "input": "sample.json",
+      "output": "pdf",
+      "status": "passed",
+      "detail": "sample_json__to__pdf__sample.pdf"
+    },
+    {
+      "category": "documents",
+      "input": "sample.json",
+      "output": "txt",
+      "status": "passed",
+      "detail": "sample_json__to__txt__sample.txt"
+    },
+    {
+      "category": "documents",
+      "input": "sample.json",
+      "output": "html",
+      "status": "passed",
+      "detail": "sample_json__to__html__sample.html"
+    },
+    {
+      "category": "documents",
+      "input": "sample.json",
+      "output": "md",
+      "status": "passed",
+      "detail": "sample_json__to__md__sample.md"
+    },
+    {
+      "category": "documents",
+      "input": "sample.xml",
+      "output": "pdf",
+      "status": "passed",
+      "detail": "sample_xml__to__pdf__sample.pdf"
+    },
+    {
+      "category": "documents",
+      "input": "sample.xml",
+      "output": "txt",
+      "status": "passed",
+      "detail": "sample_xml__to__txt__sample.txt"
+    },
+    {
+      "category": "documents",
+      "input": "sample.xml",
+      "output": "html",
+      "status": "passed",
+      "detail": "sample_xml__to__html__sample.html"
+    },
+    {
+      "category": "documents",
+      "input": "sample.xml",
+      "output": "md",
+      "status": "passed",
+      "detail": "sample_xml__to__md__sample.md"
+    },
+    {
+      "category": "batch",
+      "input": "sample.txt + sample.md",
+      "output": "zip",
+      "status": "passed",
+      "detail": "unifile-output-1773173208839.zip"
+    },
+    {
+      "category": "merge",
+      "input": "sample.png + sample.jpg",
+      "output": "pdf",
+      "status": "passed",
+      "detail": "merge__images__merged_output.pdf"
+    },
+    {
+      "category": "merge",
+      "input": "sample.txt + sample.md",
+      "output": "pdf",
+      "status": "passed",
+      "detail": "merge__documents__merged_output.pdf"
+    },
+    {
+      "category": "merge",
+      "input": "sample.png + sample.txt",
+      "output": "pdf",
+      "status": "passed",
+      "detail": "merge__mixed__merged_output.pdf"
+    },
+    {
+      "category": "merge",
+      "input": "sample_from_conversion.pdf + sample.txt",
+      "output": "pdf",
+      "status": "passed",
+      "detail": "merge__pdf_plus_text__merged_output.pdf"
+    }
+  ]
+}

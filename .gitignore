@@ -1,0 +1,15 @@
+node_modules/
+
+# Playwright/browser test artifacts
+test-results/
+playwright-report/
+
+# Generated conversion outputs
+tests/assets/output/*
+!tests/assets/output/.gitkeep
+
+# Local validation scratch files
+tests/js-selectors.txt
+
+# Removed format sample retained locally
+tests/assets/input/sample.avif
