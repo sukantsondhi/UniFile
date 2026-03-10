@@ -346,6 +346,12 @@ async function addFiles(fileList) {
     elements.formatNote.textContent =
       `Skipped ${rejected.length} file(s): ` + rejected.join(" | ");
     elements.formatNote.classList.remove("hidden");
+
+    if (newFiles.length === 0) {
+      alert(
+        "No supported files were added for the selected category/mode. Please check file type support.",
+      );
+    }
   } else {
     elements.formatNote.classList.add("hidden");
     elements.formatNote.textContent = "";
@@ -638,6 +644,10 @@ function updateProcessButton() {
   } else {
     if (!format) {
       elements.processBtnText.textContent = "No supported output format";
+      return;
+    }
+    if (state.outputFormat === "pdf" && count > 1) {
+      elements.processBtnText.textContent = `Combine ${count} Files into 1 PDF`;
       return;
     }
     elements.processBtnText.textContent = `Convert ${count} File${count > 1 ? "s" : ""} to ${format}`;
@@ -1932,7 +1942,12 @@ async function processFiles() {
           results = await processImages();
         }
       } else {
-        results = await processDocuments();
+        if (state.outputFormat === "pdf") {
+          result = await mergeDocumentsToPdf();
+          results = [{ blob: result, name: "converted.pdf" }];
+        } else {
+          results = await processDocuments();
+        }
       }
 
       if (!results || results.length === 0) {
