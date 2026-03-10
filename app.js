@@ -3,7 +3,7 @@
  * Built by Sukant Sondhi
  *
  * A fully client-side file processing application.
- * Supports images, documents, audio, and video.
+ * Supports images and text-based documents.
  * All operations happen locally in your browser.
  */
 
@@ -21,37 +21,11 @@ const FORMATS = {
       "bmp",
       "ico",
       "svg",
-      "tiff",
-      "tif",
       "heic",
       "heif",
-      "avif",
-      "jxl",
-      "psd",
-      "raw",
-      "cr2",
-      "nef",
-      "dng",
-      "hdr",
-      "exr",
-      "tga",
-      "pcx",
-      "pbm",
-      "pgm",
-      "ppm",
-      "pnm",
-      "jfif",
-      "jpe",
-      "cur",
-      "icns",
-      "arw",
-      "rw2",
-      "orf",
-      "cr3",
-      "srf",
     ],
-    output: ["png", "jpg", "webp", "gif", "bmp", "ico", "avif", "pdf"],
-    popular: ["png", "jpg", "webp", "gif", "heic", "avif"],
+    output: ["png", "jpg", "webp", "gif", "bmp", "ico", "pdf"],
+    popular: ["png", "jpg", "webp", "gif", "heic", "svg"],
     mimeTypes: {
       jpg: "image/jpeg",
       jpeg: "image/jpeg",
@@ -60,13 +34,11 @@ const FORMATS = {
       gif: "image/gif",
       bmp: "image/bmp",
       ico: "image/x-icon",
-      avif: "image/avif",
       svg: "image/svg+xml",
     },
   },
   documents: {
     input: [
-      "pdf",
       "txt",
       "md",
       "html",
@@ -76,12 +48,9 @@ const FORMATS = {
       "tsv",
       "json",
       "xml",
-      "docx",
-      "odt",
-      "epub",
     ],
     output: ["pdf", "txt", "html", "md"],
-    popular: ["pdf", "docx", "txt", "md", "html"],
+    popular: ["txt", "md", "html", "csv", "json"],
     mimeTypes: {
       pdf: "application/pdf",
       txt: "text/plain",
@@ -91,77 +60,10 @@ const FORMATS = {
       csv: "text/csv",
     },
   },
-  audio: {
-    input: [
-      "mp3",
-      "wav",
-      "flac",
-      "ogg",
-      "oga",
-      "opus",
-      "aac",
-      "alac",
-      "m4a",
-      "wma",
-      "amr",
-      "ac3",
-      "aiff",
-      "aif",
-      "aifc",
-      "au",
-      "m4b",
-      "weba",
-      "mp2",
-      "mpc",
-      "voc",
-    ],
-    output: ["mp3", "wav", "ogg", "aac", "m4a", "flac", "opus", "weba"],
-    popular: ["mp3", "wav", "flac", "aac", "ogg", "m4a"],
-    mimeTypes: {
-      mp3: "audio/mpeg",
-      wav: "audio/wav",
-      ogg: "audio/ogg",
-      flac: "audio/flac",
-      aac: "audio/aac",
-      m4a: "audio/m4a",
-      weba: "audio/webm",
-    },
-  },
-  video: {
-    input: [
-      "mp4",
-      "webm",
-      "avi",
-      "mov",
-      "mkv",
-      "wmv",
-      "flv",
-      "f4v",
-      "mpg",
-      "mpeg",
-      "m4v",
-      "3gp",
-      "3g2",
-      "ogv",
-      "ts",
-      "mts",
-      "m2ts",
-      "vob",
-      "rm",
-      "rmvb",
-      "divx",
-      "mxf",
-    ],
-    output: ["mp4", "webm", "avi", "mov", "gif", "mp3"],
-    popular: ["mp4", "webm", "avi", "mov", "mkv"],
-    mimeTypes: {
-      mp4: "video/mp4",
-      webm: "video/webm",
-      avi: "video/x-msvideo",
-      mov: "video/quicktime",
-      mkv: "video/x-matroska",
-    },
-  },
+};
+
+const MERGE_ONLY_INPUTS = {
+  documents: ["pdf"],
 };
 
 // ========================================
@@ -173,10 +75,8 @@ const state = {
   mode: "convert",
   outputFormat: "png",
   quality: 90,
-  bitrate: 192,
   draggedItem: null,
-  ffmpegLoaded: false,
-  ffmpegLoading: false,
+  autoClearAfterSave: true,
 };
 
 // ========================================
@@ -200,10 +100,6 @@ const elements = {
   qualitySlider: document.querySelector(".quality-slider"),
   qualityValue: document.getElementById("qualityValue"),
   qualityInput: document.getElementById("quality"),
-  bitrateInput: document.getElementById("bitrateInput"),
-  bitrateSlider: document.getElementById("bitrate"),
-  bitrateValue: document.getElementById("bitrateValue"),
-  qualityOptions: document.getElementById("qualityOptions"),
   clearAllBtn: document.getElementById("clearAllBtn"),
   addMoreBtn: document.getElementById("addMoreBtn"),
   modeButtons: document.querySelectorAll(".mode-btn"),
@@ -212,7 +108,7 @@ const elements = {
   supportedFormats: document.getElementById("supportedFormats"),
   detectedFormatValue: document.getElementById("detectedFormatValue"),
   formatNote: document.getElementById("formatNote"),
-  ffmpegNotice: document.getElementById("ffmpegNotice"),
+  autoClearAfterSave: document.getElementById("autoClearAfterSave"),
 };
 
 // ========================================
@@ -231,13 +127,52 @@ function getFileExtension(filename) {
   return filename.split(".").pop().toLowerCase();
 }
 
-function detectCategory(extension) {
+function supportsCanvasMimeType(mimeType) {
+  const canvas = document.createElement("canvas");
+  try {
+    return canvas.toDataURL(mimeType).startsWith(`data:${mimeType}`);
+  } catch (error) {
+    return false;
+  }
+}
+
+function getInputFormatsForCategory(category, includeMergeOnly = false) {
+  const baseFormats = [...FORMATS[category].input];
+
+  if (category === "images" && typeof heic2any === "undefined") {
+    return baseFormats.filter((ext) => !["heic", "heif"].includes(ext));
+  }
+
+  if (includeMergeOnly && MERGE_ONLY_INPUTS[category]) {
+    return [...baseFormats, ...MERGE_ONLY_INPUTS[category]];
+  }
+
+  return baseFormats;
+}
+
+function getOutputFormatsForCategory(category) {
+  if (category !== "images") {
+    return [...FORMATS[category].output];
+  }
+
+  return FORMATS.images.output.filter((format) => {
+    if (format === "pdf") return true;
+    const mimeType = FORMATS.images.mimeTypes[format];
+    return mimeType ? supportsCanvasMimeType(mimeType) : false;
+  });
+}
+
+function detectCategory(extension, includeMergeOnly = false) {
   for (const [category, formats] of Object.entries(FORMATS)) {
-    if (formats.input.includes(extension)) {
+    const allowedFormats = getInputFormatsForCategory(
+      category,
+      includeMergeOnly,
+    );
+    if (allowedFormats.includes(extension)) {
       return category;
     }
   }
-  return "images"; // Default
+  return null;
 }
 
 function generateId() {
@@ -356,10 +291,16 @@ async function convertHeicToJpeg(file) {
 
 async function addFiles(fileList) {
   const newFiles = [];
+  const rejected = [];
 
   for (const file of fileList) {
     const ext = getFileExtension(file.name);
-    const category = detectCategory(ext);
+    const category = detectCategory(ext, state.mode === "merge");
+
+    if (!category) {
+      rejected.push(`${file.name} (unsupported type)`);
+      continue;
+    }
 
     // Auto-switch category based on first file if no files yet (only in convert mode)
     if (
@@ -368,6 +309,13 @@ async function addFiles(fileList) {
       state.mode === "convert"
     ) {
       switchCategory(category);
+    }
+
+    if (state.mode === "convert" && category !== state.category) {
+      rejected.push(
+        `${file.name} (${ext.toUpperCase()} is not part of ${state.category.toUpperCase()} conversion)`,
+      );
+      continue;
     }
 
     const fileData = {
@@ -381,10 +329,7 @@ async function addFiles(fileList) {
     };
 
     // Generate preview for images
-    if (
-      category === "images" &&
-      !["heic", "heif", "psd", "raw", "cr2", "nef"].includes(ext)
-    ) {
+    if (category === "images" && !["heic", "heif"].includes(ext)) {
       try {
         fileData.preview = await readFileAsDataURL(file);
       } catch (e) {
@@ -397,12 +342,13 @@ async function addFiles(fileList) {
 
   state.files = [...state.files, ...newFiles];
 
-  // Update detected format display
-  if (state.files.length > 0) {
-    const formats = [
-      ...new Set(state.files.map((f) => f.extension.toUpperCase())),
-    ];
-    elements.detectedFormatValue.textContent = formats.join(", ");
+  if (rejected.length > 0) {
+    elements.formatNote.textContent =
+      `Skipped ${rejected.length} file(s): ` + rejected.join(" | ");
+    elements.formatNote.classList.remove("hidden");
+  } else {
+    elements.formatNote.classList.add("hidden");
+    elements.formatNote.textContent = "";
   }
 
   updateUI();
@@ -415,7 +361,8 @@ function removeFile(id) {
 
 function clearAllFiles() {
   state.files = [];
-  elements.detectedFormatValue.textContent = "--";
+  elements.formatNote.classList.add("hidden");
+  elements.formatNote.textContent = "";
   updateUI();
 }
 
@@ -440,7 +387,7 @@ function switchCategory(category) {
   });
 
   // Update file input accept attribute
-  const formats = FORMATS[category].input;
+  const formats = getInputFormatsForCategory(category, false);
   elements.fileInput.accept = formats.map((f) => `.${f}`).join(",");
 
   // Update supported formats display
@@ -449,7 +396,7 @@ function switchCategory(category) {
   // Update output format dropdown
   updateOutputFormats();
 
-  // Update quality/bitrate visibility
+  // Update quality control visibility
   updateQualityControls();
 
   // Clear files when switching category
@@ -468,13 +415,11 @@ function switchMode(mode) {
     btn.classList.toggle("active", btn.dataset.mode === mode);
   });
 
-  // In merge mode, allow all file types for cross-category merging
+  // In merge mode, allow all supported image/document formats plus PDF inputs
   if (mode === "merge") {
     const allFormats = [
-      ...FORMATS.images.input,
-      ...FORMATS.documents.input,
-      ...FORMATS.audio.input,
-      ...FORMATS.video.input,
+      ...getInputFormatsForCategory("images", true),
+      ...getInputFormatsForCategory("documents", true),
     ];
     elements.fileInput.accept = allFormats.map((f) => `.${f}`).join(",");
 
@@ -485,18 +430,48 @@ function switchMode(mode) {
     state.outputFormat = "pdf";
   } else {
     // Restore category-specific formats
-    const formats = FORMATS[state.category].input;
+    const formats = getInputFormatsForCategory(state.category, false);
     elements.fileInput.accept = formats.map((f) => `.${f}`).join(",");
     updateOutputFormats();
+
+    if (state.files.length > 0) {
+      const allowed = new Set(formats);
+      const keptFiles = state.files.filter(
+        (file) => file.category === state.category && allowed.has(file.extension),
+      );
+
+      if (keptFiles.length !== state.files.length) {
+        state.files = keptFiles;
+        elements.formatNote.textContent =
+          "Removed files that are not supported in convert mode for this category.";
+        elements.formatNote.classList.remove("hidden");
+      }
+    }
   }
 
+  updateSupportedFormats();
   updateUI();
 }
 
 function updateSupportedFormats() {
   const formats = FORMATS[state.category];
-  const popular = formats.popular || formats.input.slice(0, 6);
-  const others = formats.input.filter((f) => !popular.includes(f));
+  const availableInputs = getInputFormatsForCategory(
+    state.category,
+    state.mode === "merge",
+  );
+  const popularSeed = [...(formats.popular || availableInputs.slice(0, 6))];
+  if (
+    state.mode === "merge" &&
+    state.category === "documents" &&
+    availableInputs.includes("pdf") &&
+    !popularSeed.includes("pdf")
+  ) {
+    popularSeed.unshift("pdf");
+  }
+  const popular = popularSeed.filter((f) =>
+    availableInputs.includes(f),
+  );
+  const others = availableInputs.filter((f) => !popular.includes(f));
 
   let html = popular
     .map((f) => `<span class="format-badge popular">${f.toUpperCase()}</span>`)
@@ -510,13 +485,21 @@ function updateSupportedFormats() {
 }
 
 function updateOutputFormats() {
-  const formats = FORMATS[state.category].output;
+  const formats = getOutputFormatsForCategory(state.category);
+  if (formats.length === 0) {
+    elements.outputFormat.innerHTML = `<option value="">No supported outputs</option>`;
+    state.outputFormat = "";
+    return;
+  }
+
+  const previous = state.outputFormat;
 
   elements.outputFormat.innerHTML = formats
     .map((f) => `<option value="${f}">${f.toUpperCase()}</option>`)
     .join("");
 
-  state.outputFormat = formats[0];
+  state.outputFormat = formats.includes(previous) ? previous : formats[0];
+  elements.outputFormat.value = state.outputFormat;
 }
 
 function updateQualityControls() {
@@ -524,13 +507,8 @@ function updateQualityControls() {
   const format = state.outputFormat;
 
   // Show quality slider for images
-  const showQuality =
-    category === "images" && ["jpg", "webp", "avif"].includes(format);
+  const showQuality = category === "images" && ["jpg", "webp"].includes(format);
   elements.qualitySlider.classList.toggle("hidden", !showQuality);
-
-  // Show bitrate slider for audio
-  const showBitrate = category === "audio";
-  elements.bitrateInput.classList.toggle("hidden", !showBitrate);
 }
 
 // ========================================
@@ -538,9 +516,20 @@ function updateQualityControls() {
 // ========================================
 
 function updateUI() {
+  updateDetectedFormats();
   renderFileList();
   updateVisibility();
   updateProcessButton();
+}
+
+function updateDetectedFormats() {
+  if (state.files.length === 0) {
+    elements.detectedFormatValue.textContent = "--";
+    return;
+  }
+
+  const formats = [...new Set(state.files.map((f) => f.extension.toUpperCase()))];
+  elements.detectedFormatValue.textContent = formats.join(", ");
 }
 
 function renderFileList() {
@@ -620,24 +609,16 @@ function getCategoryIcon(category) {
             <line x1="16" y1="13" x2="8" y2="13"></line>
             <line x1="16" y1="17" x2="8" y2="17"></line>
         </svg>`,
-    audio: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9 18V5l12-2v13"></path>
-            <circle cx="6" cy="18" r="3"></circle>
-            <circle cx="18" cy="16" r="3"></circle>
-        </svg>`,
-    video: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="23 7 16 12 23 17 23 7"></polygon>
-            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
-        </svg>`,
   };
   return icons[category] || icons.images;
 }
 
 function updateVisibility() {
   const hasFiles = state.files.length > 0;
+  const hasOutput = state.mode === "merge" || Boolean(state.outputFormat);
 
   elements.fileListContainer.classList.toggle("hidden", !hasFiles);
-  elements.processBtn.classList.toggle("hidden", !hasFiles);
+  elements.processBtn.classList.toggle("hidden", !hasFiles || !hasOutput);
   elements.conversionOptions.classList.toggle("hidden", !hasFiles);
 
   updateQualityControls();
@@ -645,7 +626,7 @@ function updateVisibility() {
 
 function updateProcessButton() {
   const count = state.files.length;
-  const format = state.outputFormat.toUpperCase();
+  const format = state.outputFormat ? state.outputFormat.toUpperCase() : "";
 
   if (state.mode === "merge") {
     const formats = [
@@ -655,6 +636,10 @@ function updateProcessButton() {
       formats.length > 1 ? `${formats.length} formats` : formats[0] || "files";
     elements.processBtnText.textContent = `Merge ${count} Files (${formatText}) → ${format}`;
   } else {
+    if (!format) {
+      elements.processBtnText.textContent = "No supported output format";
+      return;
+    }
     elements.processBtnText.textContent = `Convert ${count} File${count > 1 ? "s" : ""} to ${format}`;
   }
 }
@@ -840,9 +825,7 @@ async function processImages() {
 
       const mimeType =
         FORMATS.images.mimeTypes[state.outputFormat] || "image/png";
-      const quality = ["jpg", "jpeg", "webp", "avif"].includes(
-        state.outputFormat,
-      )
+      const quality = ["jpg", "jpeg", "webp"].includes(state.outputFormat)
         ? state.quality / 100
         : undefined;
 
@@ -1371,7 +1354,7 @@ async function mergeAllToPdf() {
         await addTextToPdf(mergedPdf, fileData, font);
         successCount++;
       } else {
-        // For audio/video, add info page
+        // Fallback for unknown file category
         const page = mergedPdf.addPage([612, 792]);
         page.drawText(`[${fileData.category.toUpperCase()}] ${fileData.name}`, {
           x: 50,
@@ -1387,7 +1370,7 @@ async function mergeAllToPdf() {
           font: font,
           color: rgb(0.5, 0.5, 0.5),
         });
-        page.drawText("(Audio/Video files cannot be embedded in PDF)", {
+        page.drawText("(This file type cannot be embedded in PDF)", {
           x: 50,
           y: 640,
           size: 10,
@@ -1791,45 +1774,40 @@ async function addTextToPdf(pdfDoc, fileData, font) {
 }
 
 // ========================================
-// Audio/Video Processing (Basic)
-// ========================================
-
-async function processAudioVideo() {
-  // For audio/video, we'll use the browser's MediaRecorder API for basic conversions
-  // More complex conversions would require FFmpeg.wasm
-
-  const results = [];
-  const total = state.files.length;
-
-  for (let i = 0; i < state.files.length; i++) {
-    const fileData = state.files[i];
-    showProgress(true, "Processing...", fileData.name, ((i + 1) / total) * 100);
-
-    try {
-      // For now, provide the file as-is with format note
-      // Full audio/video conversion would require FFmpeg.wasm
-      results.push({
-        blob: fileData.file,
-        name: fileData.name.replace(/\.[^.]+$/, `.${state.outputFormat}`),
-      });
-    } catch (error) {
-      console.error(`Error processing ${fileData.name}:`, error);
-    }
-  }
-
-  // Show note about audio/video conversion
-  if (state.category === "audio" || state.category === "video") {
-    alert(
-      "Note: Full audio/video conversion requires FFmpeg.wasm which is loading in the background. For now, basic format changes are applied.",
-    );
-  }
-
-  return results;
-}
-
-// ========================================
 // Download
 // ========================================
+
+function sanitizeFileName(name) {
+  const sanitized = name
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "_")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return sanitized || `unifile-${Date.now()}`;
+}
+
+function getUniqueFileName(fileName, usedNames) {
+  const safeName = sanitizeFileName(fileName);
+  if (!usedNames.has(safeName)) {
+    usedNames.add(safeName);
+    return safeName;
+  }
+
+  const dotIndex = safeName.lastIndexOf(".");
+  const hasExt = dotIndex > 0;
+  const base = hasExt ? safeName.slice(0, dotIndex) : safeName;
+  const ext = hasExt ? safeName.slice(dotIndex) : "";
+  let counter = 1;
+  let candidate = `${base} (${counter})${ext}`;
+
+  while (usedNames.has(candidate)) {
+    counter += 1;
+    candidate = `${base} (${counter})${ext}`;
+  }
+
+  usedNames.add(candidate);
+  return candidate;
+}
 
 function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
@@ -1842,15 +1820,82 @@ function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
+async function saveFilesToFolder(files) {
+  if (typeof window.showDirectoryPicker !== "function") {
+    return false;
+  }
+
+  const dirHandle = await window.showDirectoryPicker({
+    id: "unifile-output-folder",
+    mode: "readwrite",
+  });
+
+  const usedNames = new Set();
+
+  for (let i = 0; i < files.length; i++) {
+    const current = files[i];
+    const fileName = getUniqueFileName(current.name, usedNames);
+    showProgress(
+      true,
+      "Saving files...",
+      fileName,
+      ((i + 1) / files.length) * 100,
+    );
+
+    const handle = await dirHandle.getFileHandle(fileName, { create: true });
+    const writable = await handle.createWritable();
+    await writable.write(current.blob);
+    await writable.close();
+  }
+
+  return true;
+}
+
+async function downloadAsZip(files) {
+  if (typeof JSZip === "undefined") {
+    return false;
+  }
+
+  const zip = new JSZip();
+  const usedNames = new Set();
+
+  files.forEach((file) => {
+    const fileName = getUniqueFileName(file.name, usedNames);
+    zip.file(fileName, file.blob);
+  });
+
+  showProgress(true, "Preparing ZIP...", "Compressing files", 80);
+  const zipBlob = await zip.generateAsync({
+    type: "blob",
+    compression: "DEFLATE",
+    compressionOptions: { level: 6 },
+  });
+  downloadBlob(zipBlob, `unifile-output-${Date.now()}.zip`);
+  return true;
+}
+
 async function downloadResults(files) {
   if (files.length === 1) {
-    downloadBlob(files[0].blob, files[0].name);
-  } else {
-    // Download each file with a small delay
-    for (let i = 0; i < files.length; i++) {
-      setTimeout(() => {
-        downloadBlob(files[i].blob, files[i].name);
-      }, i * 300);
+    downloadBlob(files[0].blob, sanitizeFileName(files[0].name));
+    return;
+  }
+
+  try {
+    const savedToFolder = await saveFilesToFolder(files);
+    if (savedToFolder) {
+      return;
+    }
+  } catch (error) {
+    if (error?.name !== "AbortError") {
+      console.warn("Folder save failed. Falling back to ZIP download.", error);
+    }
+  }
+
+  const zipDownloaded = await downloadAsZip(files);
+  if (!zipDownloaded) {
+    const usedNames = new Set();
+    for (const file of files) {
+      downloadBlob(file.blob, getUniqueFileName(file.name, usedNames));
     }
   }
 }
@@ -1861,6 +1906,7 @@ async function downloadResults(files) {
 
 async function processFiles() {
   if (state.files.length === 0) return;
+  let completedSuccessfully = false;
 
   try {
     elements.processBtn.disabled = true;
@@ -1872,11 +1918,8 @@ async function processFiles() {
       // Merge mode - supports mixing different formats into one output
       result = await mergeAllToPdf();
       showProgress(true, "Complete!", "", 100);
-      setTimeout(() => {
-        downloadBlob(result, "merged_output.pdf");
-        showProgress(false);
-        elements.processBtn.disabled = false;
-      }, 500);
+      await downloadResults([{ blob: result, name: "merged_output.pdf" }]);
+      completedSuccessfully = true;
     } else {
       // Convert mode
       let results;
@@ -1888,24 +1931,28 @@ async function processFiles() {
         } else {
           results = await processImages();
         }
-      } else if (state.category === "documents") {
-        results = await processDocuments();
       } else {
-        results = await processAudioVideo();
+        results = await processDocuments();
+      }
+
+      if (!results || results.length === 0) {
+        throw new Error("No files could be converted. Please verify input files.");
       }
 
       showProgress(true, "Complete!", "", 100);
-      setTimeout(() => {
-        downloadResults(results);
-        showProgress(false);
-        elements.processBtn.disabled = false;
-      }, 500);
+      await downloadResults(results);
+      completedSuccessfully = true;
     }
   } catch (error) {
     console.error("Processing error:", error);
     alert(`Error: ${error.message}`);
+  } finally {
     showProgress(false);
     elements.processBtn.disabled = false;
+
+    if (completedSuccessfully && state.autoClearAfterSave) {
+      clearAllFiles();
+    }
   }
 }
 
@@ -1954,11 +2001,12 @@ function setupEventListeners() {
     elements.qualityValue.textContent = state.quality;
   });
 
-  // Bitrate slider
-  elements.bitrateSlider.addEventListener("input", (e) => {
-    state.bitrate = parseInt(e.target.value);
-    elements.bitrateValue.textContent = state.bitrate;
-  });
+  // Privacy preference
+  if (elements.autoClearAfterSave) {
+    elements.autoClearAfterSave.addEventListener("change", (e) => {
+      state.autoClearAfterSave = e.target.checked;
+    });
+  }
 
   // Clear all
   elements.clearAllBtn.addEventListener("click", clearAllFiles);
@@ -2021,6 +2069,10 @@ function init() {
   updateSupportedFormats();
   updateOutputFormats();
   updateUI();
+
+  if (elements.autoClearAfterSave) {
+    elements.autoClearAfterSave.checked = state.autoClearAfterSave;
+  }
 
   console.log("🚀 Unifile initialized!");
   console.log("📁 All processing happens locally in your browser.");

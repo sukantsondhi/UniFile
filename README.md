@@ -1,219 +1,65 @@
-# UniFile - Universal Offline File Converter
+# UniFile - Offline Browser File Converter
 
 <p align="center">
   <img src="https://img.shields.io/badge/Privacy-100%25%20Offline-green?style=for-the-badge" alt="100% Offline">
   <img src="https://img.shields.io/badge/Platform-All%20Devices-blue?style=for-the-badge" alt="All Platforms">
   <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="MIT License">
-  <img src="https://img.shields.io/badge/Formats-80%2B-purple?style=for-the-badge" alt="80+ Formats">
 </p>
 
-**UniFile** is a powerful, privacy-focused universal file converter that runs entirely in your browser. Convert images, documents, audio, and video – all offline. No uploads, no servers, no tracking – your files never leave your device.
+UniFile is a privacy-first file converter that runs fully in your browser.
+No uploads, no server processing, no tracking.
 
-🔗 **Live Demo:** [https://unifile.sukantsondhi.com](https://unifile.sukantsondhi.com)
+Live Demo: https://unifile.sukantsondhi.com
 
----
+## What It Supports
 
-## ✨ Features
+### Image conversion
+- Inputs: `png`, `jpg`, `jpeg`, `webp`, `gif`, `bmp`, `ico`, `svg`, `heic`, `heif`
+- Outputs: `png`, `jpg`, `webp`, `gif`, `bmp`, `ico`, `pdf`
+- Notes:
+  - `heic`/`heif` requires `heic2any` in-browser support.
+  - Image outputs shown in UI are filtered by your browser's actual canvas encoder support.
 
-### 🔒 100% Private & Secure
+### Document conversion (text-based)
+- Inputs: `txt`, `md`, `html`, `htm`, `rtf`, `csv`, `tsv`, `json`, `xml`
+- Outputs: `pdf`, `txt`, `html`, `md`
 
-- All processing happens locally in your browser
-- Your files are **never uploaded** to any server
-- Works completely offline after initial load
-- No tracking, no analytics, no data collection
+### Merge mode
+- Merge images, text-based documents, and PDFs into one PDF.
+- PDF is supported in merge mode (not in convert mode).
 
-### 🖼️ Image Conversion (36 formats)
+## Privacy-focused behavior
+- Processing stays on-device in browser memory.
+- Optional auto-clear setting removes queued files from memory after save.
+- Multi-file outputs can be saved directly to a user-selected folder (File System Access API).
+- If folder save is unavailable, output falls back to one ZIP file.
 
-**Input Formats:**
-
-- Popular: PNG, JPG, WebP, GIF, HEIC, AVIF
-- Professional: PSD, RAW, CR2, CR3, NEF, DNG, ARW, RW2, ORF, SRF
-- Legacy: BMP, ICO, TIFF, TIF, TGA, PCX, PBM, PGM, PPM, PNM
-- Other: SVG, HEIF, JXL, HDR, EXR, JFIF, JPE, CUR, ICNS
-
-**Output Formats:** PNG, JPG, WebP, GIF, BMP, ICO, AVIF, PDF
-
-### 📄 Document Conversion (13 formats)
-
-**Input Formats:** PDF, DOCX, TXT, MD (Markdown), HTML, RTF, CSV, TSV, JSON, XML, ODT, EPUB
-
-**Output Formats:** PDF, TXT, HTML, Markdown
-
-### 🎵 Audio Conversion (21 formats)
-
-**Input Formats:** MP3, WAV, FLAC, AAC, OGG, M4A, OGA, OPUS, ALAC, WMA, AMR, AC3, AIFF, AIF, AIFC, AU, M4B, WEBA, MP2, MPC, VOC
-
-**Output Formats:** MP3, WAV, OGG, AAC, M4A, FLAC, OPUS, WEBA
-
-### 🎬 Video Conversion (22 formats)
-
-**Input Formats:** MP4, WebM, AVI, MOV, MKV, WMV, FLV, F4V, MPG, MPEG, M4V, 3GP, 3G2, OGV, TS, MTS, M2TS, VOB, RM, RMVB, DIVX, MXF
-
-**Output Formats:** MP4, WebM, AVI, MOV, GIF, MP3 (audio extraction)
-
-### 🔗 Cross-Format Merging
-
-- Merge **images + documents** into a single PDF
-- Drag & drop reordering before merge
-- Mix different file types in one operation
-
-### 🎨 Modern User Interface
-
-- Clean, intuitive tabbed design
-- **Dark/Light mode toggle** with persistence
-- **Responsive layout** - works on desktop, tablet, and mobile
-- Visual file previews
-- Progress indicators
-- Colorful category indicators
-
-### 📱 Cross-Platform
-
-Works on all modern browsers across:
-
-- ✅ Windows
-- ✅ macOS
-- ✅ Linux
-- ✅ iOS (iPhone/iPad)
-- ✅ Android
-- ✅ ChromeOS
-
----
-
-## 🚀 Quick Start
-
-### Option 1: Use Online (Recommended)
-
-Simply visit **[unifile.sukantsondhi.com](https://unifile.sukantsondhi.com)** – no installation required!
-
-### Option 2: Run Locally
+## Quick Start
 
 ```bash
-# Clone the repository
 git clone https://github.com/Sukantsondhi/UniFile.git
 cd UniFile
-
-# Serve with any HTTP server
-# Using Python:
 python -m http.server 8000
-
-# Using Node.js:
-npx serve
-
-# Using PHP:
-php -S localhost:8000
 ```
 
-Then open `http://localhost:8000` in your browser.
+Open `http://localhost:8000`.
 
-## 📖 How to Use
+## Tech
+- Vanilla JavaScript
+- PDF-Lib
+- PDF.js
+- heic2any
+- Showdown
+- JSZip
+- Canvas API
 
-### Converting Files
+## Local Test Matrix
+- Generate test assets: `npm run test:assets`
+- Install browser for automation: `npx playwright install chromium`
+- Run conversion matrix: `npm run test:conversion`
+- Reports are written to:
+  - `tests/conversion-test-results.md`
+  - `tests/conversion-test-results.json`
 
-1. Select a **category tab** (Images, Documents, Audio, Video)
-2. Choose **"Convert"** mode
-3. Drag and drop files into the drop zone (or click to browse)
-4. Select your output format
-5. Adjust quality if needed
-6. Click **"Convert"** to download
-
-### Merging Files
-
-1. Select a category or use cross-format merge
-2. Choose **"Merge"** mode
-3. Drag and drop multiple files
-4. Reorder files by dragging them in the list
-5. Click **"Merge & Download"**
-6. Your merged PDF will download automatically
-
----
-
-## 🛠️ Technical Details
-
-### Built With
-
-- **Vanilla JavaScript** - No framework dependencies
-- **[PDF-Lib](https://pdf-lib.js.org/)** - PDF creation and manipulation
-- **[heic2any](https://github.com/nicholascostadev/heic2any)** - HEIC/HEIF conversion
-- **[Showdown](https://github.com/showdownjs/showdown)** - Markdown to HTML conversion
-- **Canvas API** - Image processing and format conversion
-- **CSS Custom Properties** - Theming and dark/light mode
-- **Drag and Drop API** - File reordering
-
-### Browser Support
-
-| Browser | Minimum Version |
-| ------- | --------------- |
-| Chrome  | 60+             |
-| Firefox | 55+             |
-| Safari  | 11+             |
-| Edge    | 79+             |
-| Opera   | 47+             |
-
-### Supported Formats Summary
-
-| Category  | Input Formats  | Output Formats |
-| --------- | -------------- | -------------- |
-| Images    | 36 formats     | 8 formats      |
-| Documents | 13 formats     | 4 formats      |
-| Audio     | 21 formats     | 8 formats      |
-| Video     | 22 formats     | 6 formats      |
-| **Total** | **92 formats** | **26 formats** |
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Here's how you can help:
-
-1. **Fork** the repository
-2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
-3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
-4. **Push** to the branch (`git push origin feature/amazing-feature`)
-5. **Open** a Pull Request
-
-### Ideas for Contributions
-
-- [ ] Full FFmpeg.wasm integration for video transcoding
-- [ ] PDF splitting functionality
-- [ ] PDF compression options
-- [ ] Batch rename files before download
-- [ ] PWA support for offline installation
-- [ ] Localization/i18n support
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 👤 Author
-
-**Sukant Sondhi**
-
-- Website: [sukantsondhi.com](https://sukantsondhi.com)
-- GitHub: [@Sukantsondhi](https://github.com/Sukantsondhi)
-- Email: unifile@sukantsondhi.com
-
----
-
-## 🙏 Acknowledgments
-
-- [PDF-Lib](https://pdf-lib.js.org/) for excellent PDF manipulation
-- [heic2any](https://github.com/nicholascostadev/heic2any) for HEIC conversion
-- [Showdown](https://github.com/showdownjs/showdown) for Markdown parsing
-- Icons inspired by [Feather Icons](https://feathericons.com/)
-
----
-
-## ⭐ Support
-
-If you found this project helpful, please consider giving it a star! ⭐
-
----
-
-<p align="center">
-  <strong>Your files. Your device. Your privacy.</strong><br>
-  Made with ❤️ by Sukant Sondhi
-</p>
+## License
+MIT. See [LICENSE](LICENSE).

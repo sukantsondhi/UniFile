@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Free offline file converter. Convert images, audio, video, and documents directly in your browser. No uploads, 100% private."
+      content="Free offline file converter. Convert images and documents directly in your browser. No uploads, 100% private."
     />
     <meta
       name="keywords"
-      content="file converter, PDF merger, image converter, audio converter, video converter, offline, privacy"
+      content="file converter, PDF merger, image converter, document converter, offline, privacy"
     />
     <meta name="author" content="Sukant Sondhi" />
     <title>UniFile - Universal Offline File Converter</title>
@@ -165,44 +165,6 @@
             </svg>
             <span>Documents</span>
           </button>
-          <button class="category-tab" data-category="audio">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M9 18V5l12-2v13"></path>
-              <circle cx="6" cy="18" r="3"></circle>
-              <circle cx="18" cy="16" r="3"></circle>
-            </svg>
-            <span>Audio</span>
-          </button>
-          <button class="category-tab" data-category="video">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <rect
-                x="2"
-                y="2"
-                width="20"
-                height="20"
-                rx="2.18"
-                ry="2.18"
-              ></rect>
-              <line x1="7" y1="2" x2="7" y2="22"></line>
-              <line x1="17" y1="2" x2="17" y2="22"></line>
-              <line x1="2" y1="12" x2="22" y2="12"></line>
-              <line x1="2" y1="7" x2="7" y2="7"></line>
-              <line x1="2" y1="17" x2="7" y2="17"></line>
-              <line x1="17" y1="17" x2="22" y2="17"></line>
-              <line x1="17" y1="7" x2="22" y2="7"></line>
-            </svg>
-            <span>Video</span>
-          </button>
         </div>
 
         <!-- Mode Selector -->
@@ -299,20 +261,11 @@
               >
               <input type="range" id="quality" min="10" max="100" value="90" />
             </div>
-            <div class="bitrate-input hidden" id="bitrateInput">
-              <label for="bitrate"
-                >Bitrate: <span id="bitrateValue">192</span> kbps</label
-              >
-              <input
-                type="range"
-                id="bitrate"
-                min="64"
-                max="320"
-                value="192"
-                step="32"
-              />
-            </div>
           </div>
+          <label class="privacy-toggle">
+            <input type="checkbox" id="autoClearAfterSave" checked />
+            <span>Auto-clear files from memory after save</span>
+          </label>
           <p class="format-note hidden" id="formatNote"></p>
         </div>
 
@@ -397,27 +350,6 @@
           <p class="progress-text" id="progressText">Initializing...</p>
         </div>
 
-        <!-- FFmpeg Loading Notice -->
-        <div class="ffmpeg-notice hidden" id="ffmpegNotice">
-          <div class="notice-icon">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-          </div>
-          <div class="notice-content">
-            <strong>Loading Audio/Video Engine...</strong>
-            <p>
-              First-time loading may take a moment. This enables powerful
-              conversions right in your browser!
-            </p>
-          </div>
-        </div>
       </main>
 
       <!-- Supported Formats Section -->
@@ -430,8 +362,6 @@
           <button class="formats-tab" data-formats="documents">
             📄 Documents
           </button>
-          <button class="formats-tab" data-formats="audio">🎵 Audio</button>
-          <button class="formats-tab" data-formats="video">🎬 Video</button>
         </div>
         <div class="formats-content">
           <div class="formats-panel active" id="formats-images">
@@ -441,43 +371,16 @@
               <span class="format-tag popular">WebP</span>
               <span class="format-tag popular">GIF</span>
               <span class="format-tag popular">HEIC</span>
-              <span class="format-tag popular">AVIF</span>
               <span class="format-tag">JPEG</span>
               <span class="format-tag">BMP</span>
               <span class="format-tag">ICO</span>
               <span class="format-tag">SVG</span>
-              <span class="format-tag">TIFF</span>
-              <span class="format-tag">TIF</span>
               <span class="format-tag">HEIF</span>
-              <span class="format-tag">JXL</span>
-              <span class="format-tag">PSD</span>
-              <span class="format-tag">RAW</span>
-              <span class="format-tag">CR2</span>
-              <span class="format-tag">CR3</span>
-              <span class="format-tag">NEF</span>
-              <span class="format-tag">DNG</span>
-              <span class="format-tag">ARW</span>
-              <span class="format-tag">RW2</span>
-              <span class="format-tag">ORF</span>
-              <span class="format-tag">SRF</span>
-              <span class="format-tag">HDR</span>
-              <span class="format-tag">EXR</span>
-              <span class="format-tag">TGA</span>
-              <span class="format-tag">PCX</span>
-              <span class="format-tag">PBM</span>
-              <span class="format-tag">PGM</span>
-              <span class="format-tag">PPM</span>
-              <span class="format-tag">PNM</span>
-              <span class="format-tag">JFIF</span>
-              <span class="format-tag">JPE</span>
-              <span class="format-tag">CUR</span>
-              <span class="format-tag">ICNS</span>
             </div>
           </div>
           <div class="formats-panel" id="formats-documents">
             <div class="formats-list">
-              <span class="format-tag popular">PDF</span>
-              <span class="format-tag popular">DOCX</span>
+              <span class="format-tag popular">PDF (Merge)</span>
               <span class="format-tag popular">TXT</span>
               <span class="format-tag popular">MD</span>
               <span class="format-tag popular">HTML</span>
@@ -486,59 +389,6 @@
               <span class="format-tag">TSV</span>
               <span class="format-tag">JSON</span>
               <span class="format-tag">XML</span>
-              <span class="format-tag">EPUB</span>
-              <span class="format-tag">ODT</span>
-            </div>
-          </div>
-          <div class="formats-panel" id="formats-audio">
-            <div class="formats-list">
-              <span class="format-tag popular">MP3</span>
-              <span class="format-tag popular">WAV</span>
-              <span class="format-tag popular">FLAC</span>
-              <span class="format-tag popular">AAC</span>
-              <span class="format-tag popular">OGG</span>
-              <span class="format-tag popular">M4A</span>
-              <span class="format-tag">OGA</span>
-              <span class="format-tag">OPUS</span>
-              <span class="format-tag">ALAC</span>
-              <span class="format-tag">WMA</span>
-              <span class="format-tag">AMR</span>
-              <span class="format-tag">AC3</span>
-              <span class="format-tag">AIFF</span>
-              <span class="format-tag">AIF</span>
-              <span class="format-tag">AIFC</span>
-              <span class="format-tag">AU</span>
-              <span class="format-tag">M4B</span>
-              <span class="format-tag">WEBA</span>
-              <span class="format-tag">MP2</span>
-              <span class="format-tag">MPC</span>
-              <span class="format-tag">VOC</span>
-            </div>
-          </div>
-          <div class="formats-panel" id="formats-video">
-            <div class="formats-list">
-              <span class="format-tag popular">MP4</span>
-              <span class="format-tag popular">WebM</span>
-              <span class="format-tag popular">AVI</span>
-              <span class="format-tag popular">MOV</span>
-              <span class="format-tag popular">MKV</span>
-              <span class="format-tag">WMV</span>
-              <span class="format-tag">FLV</span>
-              <span class="format-tag">F4V</span>
-              <span class="format-tag">MPG</span>
-              <span class="format-tag">MPEG</span>
-              <span class="format-tag">M4V</span>
-              <span class="format-tag">3GP</span>
-              <span class="format-tag">3G2</span>
-              <span class="format-tag">OGV</span>
-              <span class="format-tag">TS</span>
-              <span class="format-tag">MTS</span>
-              <span class="format-tag">M2TS</span>
-              <span class="format-tag">VOB</span>
-              <span class="format-tag">RM</span>
-              <span class="format-tag">RMVB</span>
-              <span class="format-tag">DIVX</span>
-              <span class="format-tag">MXF</span>
             </div>
           </div>
         </div>
@@ -659,8 +509,8 @@
             </div>
             <h3>Image Conversion</h3>
             <p>
-              Convert between 100+ image formats including HEIC, WebP, AVIF, RAW
-              files, and more.
+              Convert common web image formats including PNG, JPG, WebP, GIF,
+              BMP, ICO, SVG, and HEIC/HEIF.
             </p>
           </div>
           <div class="feature-card documents">
@@ -679,44 +529,8 @@
             </div>
             <h3>Document Processing</h3>
             <p>
-              Convert DOCX, Markdown, HTML, RTF, CSV, JSON, EPUB, and more
-              document formats.
-            </p>
-          </div>
-          <div class="feature-card audio">
-            <div class="feature-icon">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path d="M9 18V5l12-2v13"></path>
-                <circle cx="6" cy="18" r="3"></circle>
-                <circle cx="18" cy="16" r="3"></circle>
-              </svg>
-            </div>
-            <h3>Audio Conversion</h3>
-            <p>
-              Convert MP3, WAV, FLAC, OGG, AAC, M4A, and 30+ audio formats with
-              quality control.
-            </p>
-          </div>
-          <div class="feature-card video">
-            <div class="feature-icon">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <polygon points="23 7 16 12 23 17 23 7"></polygon>
-                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
-              </svg>
-            </div>
-            <h3>Video Conversion</h3>
-            <p>
-              Convert MP4, WebM, AVI, MOV, MKV, and extract audio from videos.
+              Convert text-based documents including TXT, Markdown, HTML, CSV,
+              TSV, JSON, XML, and RTF.
             </p>
           </div>
           <div class="feature-card merge">
@@ -734,8 +548,8 @@
             </div>
             <h3>Merge Files</h3>
             <p>
-              Combine multiple PDFs, images into PDF, or join audio/video files
-              together.
+              Combine multiple PDFs, images, and text-based documents into one
+              PDF in your chosen order.
             </p>
           </div>
           <div class="feature-card platform">
@@ -944,6 +758,7 @@
     </script>
     <script src="https://unpkg.com/heic2any@0.0.4/dist/heic2any.min.js"></script>
     <script src="https://unpkg.com/showdown@2.1.0/dist/showdown.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
     <!-- Main App -->
     <script src="app.js"></script>
