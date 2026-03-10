@@ -109,6 +109,19 @@
         height: 20px;
       }
 
+      .capability-notice {
+        margin-bottom: 2rem;
+        padding: 1rem 1.25rem;
+        border-radius: 10px;
+        border-left: 4px solid var(--warning);
+        background: rgba(245, 158, 11, 0.15);
+        color: #fde68a;
+      }
+
+      .capability-notice strong {
+        color: #fcd34d;
+      }
+
       /* Navigation */
       .doc-nav {
         background: var(--bg-card);
@@ -417,6 +430,13 @@
           Understanding how your files are processed securely
         </p>
       </header>
+
+      <div class="capability-notice">
+        <strong>Current capability note:</strong> UniFile currently supports
+        browser-native conversion for images and text-based documents. PDF is
+        supported for merging, and multi-file output can be saved directly into
+        a user-selected folder.
+      </div>
 
       <nav class="doc-nav">
         <h3>Quick Navigation</h3>
