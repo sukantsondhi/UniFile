@@ -646,10 +646,6 @@ function updateProcessButton() {
       elements.processBtnText.textContent = "No supported output format";
       return;
     }
-    if (state.outputFormat === "pdf" && count > 1) {
-      elements.processBtnText.textContent = `Combine ${count} Files into 1 PDF`;
-      return;
-    }
     elements.processBtnText.textContent = `Convert ${count} File${count > 1 ? "s" : ""} to ${format}`;
   }
 }
@@ -1942,12 +1938,7 @@ async function processFiles() {
           results = await processImages();
         }
       } else {
-        if (state.outputFormat === "pdf") {
-          result = await mergeDocumentsToPdf();
-          results = [{ blob: result, name: "converted.pdf" }];
-        } else {
-          results = await processDocuments();
-        }
+        results = await processDocuments();
       }
 
       if (!results || results.length === 0) {
