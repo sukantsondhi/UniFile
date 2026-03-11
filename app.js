@@ -74,6 +74,7 @@ const state = {
   category: "images",
   mode: "convert",
   outputFormat: "png",
+  outputFolderName: "",
   quality: 90,
   draggedItem: null,
   autoClearAfterSave: true,
@@ -97,6 +98,7 @@ const elements = {
   progressPercent: document.getElementById("progressPercent"),
   conversionOptions: document.getElementById("conversionOptions"),
   outputFormat: document.getElementById("outputFormat"),
+  outputFolderName: document.getElementById("outputFolderName"),
   qualitySlider: document.querySelector(".quality-slider"),
   qualityValue: document.getElementById("qualityValue"),
   qualityInput: document.getElementById("quality"),
@@ -371,6 +373,28 @@ function releaseFileResources(fileData) {
   ) {
     URL.revokeObjectURL(fileData.preview);
   }
+}
+
+async function getImageSourceForProcessing(fileData) {
+  if (["heic", "heif"].includes(fileData.extension)) {
+    const jpegBlob = await convertHeicToJpeg(fileData.file);
+    return {
+      imageSrc: URL.createObjectURL(jpegBlob),
+      revokeAfterUse: true,
+    };
+  }
+
+  if (fileData.preview) {
+    return {
+      imageSrc: fileData.preview,
+      revokeAfterUse: false,
+    };
+  }
+
+  return {
+    imageSrc: URL.createObjectURL(fileData.file),
+    revokeAfterUse: true,
+  };
 }
 
 function removeFile(id) {
@@ -793,26 +817,8 @@ async function processImages() {
     showProgress(true, "Converting...", fileData.name, ((i + 1) / total) * 100);
 
     try {
-      let imageSrc;
-      let revokeTempSrc = false;
-
-      // Handle HEIC
-      if (["heic", "heif"].includes(fileData.extension)) {
-        try {
-          const jpegBlob = await convertHeicToJpeg(fileData.file);
-          imageSrc = URL.createObjectURL(jpegBlob);
-          revokeTempSrc = true;
-        } catch (heicError) {
-          console.warn(
-            `HEIC conversion failed for ${fileData.name}:`,
-            heicError,
-          );
-          errors.push(fileData.name);
-          continue;
-        }
-      } else {
-        imageSrc = fileData.preview || (await readFileAsDataURL(fileData.file));
-      }
+      const { imageSrc, revokeAfterUse } =
+        await getImageSourceForProcessing(fileData);
 
       let img;
       try {
@@ -820,7 +826,7 @@ async function processImages() {
       } catch (loadError) {
         console.warn(`Could not load image ${fileData.name}:`, loadError);
         errors.push(fileData.name);
-        if (revokeTempSrc && imageSrc.startsWith("blob:")) {
+        if (revokeAfterUse && imageSrc.startsWith("blob:")) {
           URL.revokeObjectURL(imageSrc);
         }
         continue;
@@ -871,7 +877,7 @@ async function processImages() {
         name: fileData.name.replace(/\.[^.]+$/, `.${state.outputFormat}`),
       });
 
-      if (revokeTempSrc && imageSrc.startsWith("blob:")) {
+      if (revokeAfterUse && imageSrc.startsWith("blob:")) {
         URL.revokeObjectURL(imageSrc);
       }
     } catch (error) {
@@ -985,10 +991,9 @@ async function mergeImagesToPdf() {
 
 // Convert any image file to bytes that can be embedded in PDF
 async function convertFileToImageBytes(fileData) {
-  // First, read the file and draw it to canvas
-  // This handles ALL formats consistently including GIF, WEBP, BMP, etc.
-
-  const dataUrl = await readFileAsDataURL(fileData.file);
+  const { imageSrc, revokeAfterUse } = await getImageSourceForProcessing(
+    fileData,
+  );
 
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -1040,14 +1045,21 @@ async function convertFileToImageBytes(fileData) {
         });
       } catch (err) {
         reject(err);
+      } finally {
+        if (revokeAfterUse && imageSrc.startsWith("blob:")) {
+          URL.revokeObjectURL(imageSrc);
+        }
       }
     };
 
     img.onerror = () => {
+      if (revokeAfterUse && imageSrc.startsWith("blob:")) {
+        URL.revokeObjectURL(imageSrc);
+      }
       reject(new Error(`Failed to load image: ${fileData.name}`));
     };
 
-    img.src = dataUrl;
+    img.src = imageSrc;
   });
 }
 
@@ -1890,14 +1902,67 @@ function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
-async function saveFilesToFolder(files) {
+function getDefaultOutputFolderName() {
+  const now = new Date();
+  const stamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}_${String(now.getHours()).padStart(2, "0")}-${String(now.getMinutes()).padStart(2, "0")}-${String(now.getSeconds()).padStart(2, "0")}`;
+  return `unifile_output_${stamp}`;
+}
+
+function getConfiguredOutputFolderName() {
+  const inputName = elements.outputFolderName
+    ? elements.outputFolderName.value
+    : state.outputFolderName;
+  const cleaned = sanitizeFileName(inputName || "");
+  const folderName = cleaned || getDefaultOutputFolderName();
+
+  state.outputFolderName = folderName;
+  if (elements.outputFolderName && elements.outputFolderName.value !== folderName) {
+    elements.outputFolderName.value = folderName;
+  }
+
+  return folderName;
+}
+
+async function pickOutputDirectoryHandle() {
+  if (typeof window.showDirectoryPicker !== "function") {
+    return null;
+  }
+
+  try {
+    return await window.showDirectoryPicker({
+      id: "unifile-output-folder",
+      mode: "readwrite",
+    });
+  } catch (error) {
+    if (error?.name !== "AbortError") {
+      console.warn(
+        "Directory picker not available or blocked. Falling back to ZIP.",
+        error,
+      );
+    }
+    return null;
+  }
+}
+
+async function prepareOutputTarget() {
+  const folderName = getConfiguredOutputFolderName();
+  const parentDirHandle = await pickOutputDirectoryHandle();
+  return { folderName, parentDirHandle };
+}
+
+async function saveFilesToFolder(files, folderName, parentDirHandle = null) {
   if (typeof window.showDirectoryPicker !== "function") {
     return false;
   }
 
-  const dirHandle = await window.showDirectoryPicker({
-    id: "unifile-output-folder",
-    mode: "readwrite",
+  const targetParent =
+    parentDirHandle || (await pickOutputDirectoryHandle());
+  if (!targetParent) {
+    return false;
+  }
+
+  const dirHandle = await targetParent.getDirectoryHandle(folderName, {
+    create: true,
   });
 
   const usedNames = new Set();
@@ -1921,17 +1986,18 @@ async function saveFilesToFolder(files) {
   return true;
 }
 
-async function downloadAsZip(files) {
+async function downloadAsZip(files, folderName) {
   if (typeof JSZip === "undefined") {
     return false;
   }
 
   const zip = new JSZip();
+  const folder = zip.folder(folderName);
   const usedNames = new Set();
 
   files.forEach((file) => {
     const fileName = getUniqueFileName(file.name, usedNames);
-    zip.file(fileName, file.blob);
+    folder.file(fileName, file.blob);
   });
 
   showProgress(true, "Preparing ZIP...", "Compressing files", 80);
@@ -1940,33 +2006,39 @@ async function downloadAsZip(files) {
     compression: "DEFLATE",
     compressionOptions: { level: 6 },
   });
-  downloadBlob(zipBlob, `unifile-output-${Date.now()}.zip`);
+  downloadBlob(zipBlob, `${folderName}.zip`);
   return true;
 }
 
-async function downloadResults(files) {
-  if (files.length === 1) {
-    downloadBlob(files[0].blob, sanitizeFileName(files[0].name));
-    return;
-  }
+async function downloadResults(files, outputTarget = null) {
+  const folderName = outputTarget?.folderName || getConfiguredOutputFolderName();
+  const parentDirHandle = outputTarget?.parentDirHandle || null;
 
   try {
-    const savedToFolder = await saveFilesToFolder(files);
+    const savedToFolder = await saveFilesToFolder(
+      files,
+      folderName,
+      parentDirHandle,
+    );
     if (savedToFolder) {
       return;
     }
   } catch (error) {
-    if (error?.name !== "AbortError") {
-      console.warn("Folder save failed. Falling back to ZIP download.", error);
-    }
+    console.warn("Folder save failed. Falling back to ZIP download.", error);
   }
 
-  const zipDownloaded = await downloadAsZip(files);
+  const zipDownloaded = await downloadAsZip(files, folderName);
   if (!zipDownloaded) {
+    if (files.length === 1) {
+      downloadBlob(files[0].blob, sanitizeFileName(files[0].name));
+      return;
+    }
+
     const usedNames = new Set();
     for (const file of files) {
       downloadBlob(file.blob, getUniqueFileName(file.name, usedNames));
     }
+    return;
   }
 }
 
@@ -1977,9 +2049,11 @@ async function downloadResults(files) {
 async function processFiles() {
   if (state.files.length === 0) return;
   let completedSuccessfully = false;
+  let outputTarget = null;
 
   try {
     elements.processBtn.disabled = true;
+    outputTarget = await prepareOutputTarget();
     showProgress(true, "Starting...", "", 0);
 
     let result;
@@ -1988,7 +2062,10 @@ async function processFiles() {
       // Merge mode - supports mixing different formats into one output
       result = await mergeAllToPdf();
       showProgress(true, "Complete!", "", 100);
-      await downloadResults([{ blob: result, name: "merged_output.pdf" }]);
+      await downloadResults(
+        [{ blob: result, name: "merged_output.pdf" }],
+        outputTarget,
+      );
       completedSuccessfully = true;
     } else {
       // Convert mode
@@ -2009,7 +2086,7 @@ async function processFiles() {
       }
 
       showProgress(true, "Complete!", "", 100);
-      await downloadResults(results);
+      await downloadResults(results, outputTarget);
       completedSuccessfully = true;
     }
   } catch (error) {
@@ -2063,6 +2140,17 @@ function setupEventListeners() {
     updateQualityControls();
     updateProcessButton();
   });
+
+  // Output folder name
+  if (elements.outputFolderName) {
+    elements.outputFolderName.addEventListener("input", (e) => {
+      state.outputFolderName = e.target.value;
+    });
+
+    elements.outputFolderName.addEventListener("blur", () => {
+      getConfiguredOutputFolderName();
+    });
+  }
 
   // Quality slider
   elements.qualityInput.addEventListener("input", (e) => {
@@ -2142,6 +2230,11 @@ function init() {
   if (elements.autoClearAfterSave) {
     elements.autoClearAfterSave.checked = state.autoClearAfterSave;
   }
+  if (elements.outputFolderName) {
+    const defaultFolderName = getDefaultOutputFolderName();
+    state.outputFolderName = defaultFolderName;
+    elements.outputFolderName.value = defaultFolderName;
+  }
 
   console.log("🚀 Unifile initialized!");
   console.log("📁 All processing happens locally in your browser.");
@@ -2154,3 +2247,4 @@ if (document.readyState === "loading") {
 } else {
   init();
 }
+

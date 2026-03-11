@@ -254,6 +254,20 @@
               <!-- Populated by JavaScript -->
             </select>
           </div>
+          <div class="output-folder-selector">
+            <label for="outputFolderName">Output folder name:</label>
+            <input
+              type="text"
+              id="outputFolderName"
+              class="output-folder-input"
+              maxlength="120"
+              placeholder="unifile_output_YYYY-MM-DD_HH-MM-SS"
+            />
+          </div>
+          <p class="output-folder-hint">
+            On Process, pick a location once. All output files will be saved
+            inside this folder in that directory.
+          </p>
           <div class="quality-options" id="qualityOptions">
             <div class="quality-slider">
               <label for="quality"
