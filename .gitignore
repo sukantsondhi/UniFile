@@ -4,6 +4,7 @@ tests/
 tmp*.js
 tmp*.txt
 tmp*.md
+tmp*.heic
 tmp_base.png
 tmp_mass_docs/
 tmp_mass_imgs/

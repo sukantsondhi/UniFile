@@ -15,7 +15,7 @@ Live Demo: https://unifile.sukantsondhi.com
 
 ### Image conversion
 - Inputs: `png`, `jpg`, `jpeg`, `webp`, `gif`, `bmp`, `ico`, `svg`, `heic`, `heif`
-- Outputs: `png`, `jpg`, `webp`, `gif`, `bmp`, `ico`, `pdf`
+- Outputs: `png`, `jpg`, `webp`, `pdf`
 - Notes:
   - `heic`/`heif` requires `heic2any` in-browser support.
   - Image outputs shown in UI are filtered by your browser's actual canvas encoder support.
@@ -52,14 +52,6 @@ Open `http://localhost:8000`.
 - Showdown
 - JSZip
 - Canvas API
-
-## Local Test Matrix
-- Generate test assets: `npm run test:assets`
-- Install browser for automation: `npx playwright install chromium`
-- Run conversion matrix: `npm run test:conversion`
-- Reports are written to:
-  - `tests/conversion-test-results.md`
-  - `tests/conversion-test-results.json`
 
 ## License
 MIT. See [LICENSE](LICENSE).

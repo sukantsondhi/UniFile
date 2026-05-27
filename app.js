@@ -24,16 +24,13 @@ const FORMATS = {
       "heic",
       "heif",
     ],
-    output: ["png", "jpg", "webp", "gif", "bmp", "ico", "pdf"],
+    output: ["png", "jpg", "webp", "pdf"],
     popular: ["png", "jpg", "webp", "gif", "heic", "svg"],
     mimeTypes: {
       jpg: "image/jpeg",
       jpeg: "image/jpeg",
       png: "image/png",
       webp: "image/webp",
-      gif: "image/gif",
-      bmp: "image/bmp",
-      ico: "image/x-icon",
       svg: "image/svg+xml",
     },
   },
@@ -126,7 +123,14 @@ function formatFileSize(bytes) {
 }
 
 function getFileExtension(filename) {
-  return filename.split(".").pop().toLowerCase();
+  const parts = filename.split(".");
+  return parts.length > 1 ? parts.pop().toLowerCase() : "";
+}
+
+function ensureDependency(name, value, feature) {
+  if (typeof value === "undefined" || value === null) {
+    throw new Error(`${feature} is unavailable because ${name} did not load.`);
+  }
 }
 
 function supportsCanvasMimeType(mimeType) {
@@ -237,6 +241,84 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+function escapeAttribute(text) {
+  return escapeHtml(text).replace(/"/g, "&quot;");
+}
+
+function sanitizePdfText(text) {
+  return String(text)
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\x09\x0A\x0D\x20-\x7E]/g, "?")
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
+}
+
+function wrapPdfLine(line, maxCharsPerLine) {
+  const sanitized = sanitizePdfText(line).replace(/\t/g, "    ");
+  if (sanitized.length <= maxCharsPerLine) {
+    return [sanitized];
+  }
+
+  const wrapped = [];
+  let remaining = sanitized;
+
+  while (remaining.length > maxCharsPerLine) {
+    let splitAt = remaining.lastIndexOf(" ", maxCharsPerLine);
+    if (splitAt < Math.floor(maxCharsPerLine * 0.5)) {
+      splitAt = maxCharsPerLine;
+    }
+    wrapped.push(remaining.slice(0, splitAt).trimEnd());
+    remaining = remaining.slice(splitAt).trimStart();
+  }
+
+  wrapped.push(remaining);
+  return wrapped;
+}
+
+function addPdfTextPage(pdfDoc, options) {
+  const { font, header, content, fontSize = 11 } = options;
+  const { rgb } = PDFLib;
+  const margin = 50;
+  const pageWidth = 612;
+  const pageHeight = 792;
+  const lineHeight = fontSize * 1.4;
+  const maxCharsPerLine = 85;
+
+  let page = pdfDoc.addPage([pageWidth, pageHeight]);
+  let y = pageHeight - margin;
+
+  if (header) {
+    page.drawText(sanitizePdfText(header).slice(0, maxCharsPerLine), {
+      x: margin,
+      y,
+      size: 10,
+      font,
+      color: rgb(0.4, 0.4, 0.4),
+    });
+    y -= lineHeight * 2;
+  }
+
+  for (const line of String(content).split(/\r?\n/)) {
+    const wrappedLines = wrapPdfLine(line, maxCharsPerLine);
+
+    for (const wrappedLine of wrappedLines) {
+      if (y < margin + lineHeight) {
+        page = pdfDoc.addPage([pageWidth, pageHeight]);
+        y = pageHeight - margin;
+      }
+
+      page.drawText(wrappedLine || " ", {
+        x: margin,
+        y,
+        size: fontSize,
+        font,
+        color: rgb(0, 0, 0),
+      });
+      y -= lineHeight;
+    }
+  }
+}
+
 // Simple CSV parser
 function parseCSV(content, delimiter = ",") {
   const rows = [];
@@ -274,6 +356,8 @@ function parseCSV(content, delimiter = ",") {
 }
 
 async function convertHeicToJpeg(file) {
+  ensureDependency("heic2any", window.heic2any, "HEIC conversion");
+
   try {
     const blob = await heic2any({
       blob: file,
@@ -601,6 +685,10 @@ function createFileListItem(fileData, index) {
   // Get icon based on category
   const iconSvg = getCategoryIcon(fileData.category);
 
+  const safeName = escapeHtml(fileData.name);
+  const safeNameAttr = escapeAttribute(fileData.name);
+  const safePreview = fileData.preview ? escapeAttribute(fileData.preview) : "";
+
   li.innerHTML = `
         <span class="drag-handle">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -614,13 +702,13 @@ function createFileListItem(fileData, index) {
         </span>
         <div class="file-icon ${fileData.category}">${iconSvg}</div>
         <div class="file-info">
-            <div class="file-name" title="${fileData.name}">${fileData.name}</div>
+            <div class="file-name" title="${safeNameAttr}">${safeName}</div>
             <div class="file-meta">
                 <span class="file-size">${formatFileSize(fileData.size)}</span>
                 <span class="file-format">${fileData.extension}</span>
             </div>
         </div>
-        ${fileData.preview ? `<img class="file-preview" src="${fileData.preview}" alt="Preview">` : ""}
+        ${safePreview ? `<img class="file-preview" src="${safePreview}" alt="Preview">` : ""}
         <button class="remove-btn" title="Remove file">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -834,16 +922,13 @@ async function processImages() {
 
       const canvas = document.createElement("canvas");
 
-      // Handle ICO sizing
-      if (state.outputFormat === "ico") {
-        canvas.width = 256;
-        canvas.height = 256;
-      } else {
-        canvas.width = img.width || 800;
-        canvas.height = img.height || 600;
-      }
+      canvas.width = img.width || 800;
+      canvas.height = img.height || 600;
 
       const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        throw new Error("Canvas 2D rendering is unavailable.");
+      }
 
       // White background for JPEG (to handle transparency)
       if (state.outputFormat === "jpg" || state.outputFormat === "jpeg") {
@@ -851,12 +936,7 @@ async function processImages() {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
 
-      // Draw image
-      if (state.outputFormat === "ico") {
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      } else {
-        ctx.drawImage(img, 0, 0);
-      }
+      ctx.drawImage(img, 0, 0);
 
       const mimeType =
         FORMATS.images.mimeTypes[state.outputFormat] || "image/png";
@@ -897,6 +977,7 @@ async function processImages() {
 }
 
 async function convertImagesToPdfFiles() {
+  ensureDependency("PDFLib", window.PDFLib, "Image to PDF conversion");
   const { PDFDocument } = PDFLib;
   const results = [];
   const errors = [];
@@ -936,9 +1017,11 @@ async function convertImagesToPdfFiles() {
 }
 
 async function mergeImagesToPdf() {
+  ensureDependency("PDFLib", window.PDFLib, "Image PDF merging");
   const { PDFDocument } = PDFLib;
   const mergedPdf = await PDFDocument.create();
   const total = state.files.length;
+  let successCount = 0;
 
   for (let i = 0; i < state.files.length; i++) {
     const fileData = state.files[i];
@@ -980,9 +1063,14 @@ async function mergeImagesToPdf() {
       });
 
       console.log(`Added ${fileData.name} to PDF: ${pageWidth}x${pageHeight}`);
+      successCount++;
     } catch (error) {
       console.error(`Error processing ${fileData.name}:`, error);
     }
+  }
+
+  if (successCount === 0) {
+    throw new Error("No images could be merged into a PDF.");
   }
 
   const pdfBytes = await mergedPdf.save();
@@ -1013,6 +1101,10 @@ async function convertFileToImageBytes(fileData) {
         canvas.height = height;
 
         const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("Canvas 2D rendering is unavailable."));
+          return;
+        }
 
         // White background (important for transparency and JPEG conversion)
         ctx.fillStyle = "#FFFFFF";
@@ -1072,6 +1164,10 @@ async function processDocuments() {
   const errors = [];
   const total = state.files.length;
 
+  if (state.outputFormat === "pdf") {
+    ensureDependency("PDFLib", window.PDFLib, "Document to PDF conversion");
+  }
+
   for (let i = 0; i < state.files.length; i++) {
     const fileData = state.files[i];
     showProgress(true, "Converting...", fileData.name, ((i + 1) / total) * 100);
@@ -1083,12 +1179,15 @@ async function processDocuments() {
 
       // Convert based on input and output format
       if (state.outputFormat === "html") {
+        const safeTitle = escapeHtml(fileData.name);
+
         if (fileData.extension === "md") {
           // Markdown to HTML
+          ensureDependency("showdown", window.showdown, "Markdown to HTML conversion");
           const converter = new showdown.Converter();
           outputContent = `<!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><title>${fileData.name}</title>
+<head><meta charset="UTF-8"><title>${safeTitle}</title>
 <style>body{font-family:system-ui;max-width:800px;margin:40px auto;padding:20px;line-height:1.6}</style>
 </head>
 <body>${converter.makeHtml(content)}</body>
@@ -1096,7 +1195,7 @@ async function processDocuments() {
         } else if (fileData.extension === "txt") {
           outputContent = `<!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><title>${fileData.name}</title></head>
+<head><meta charset="UTF-8"><title>${safeTitle}</title></head>
 <body><pre>${escapeHtml(content)}</pre></body>
 </html>`;
         } else if (fileData.extension === "json") {
@@ -1108,7 +1207,7 @@ async function processDocuments() {
           }
           outputContent = `<!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><title>${fileData.name}</title>
+<head><meta charset="UTF-8"><title>${safeTitle}</title>
 <style>pre{background:#f5f5f5;padding:20px;overflow:auto}</style>
 </head>
 <body><pre>${escapeHtml(formattedJson)}</pre></body>
@@ -1133,7 +1232,7 @@ async function processDocuments() {
           tableHtml += "</table>";
           outputContent = `<!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><title>${fileData.name}</title>
+<head><meta charset="UTF-8"><title>${safeTitle}</title>
 <style>table{border-collapse:collapse;width:100%}th,td{text-align:left}th{background:#f0f0f0}</style>
 </head>
 <body>${tableHtml}</body>
@@ -1201,36 +1300,15 @@ async function processDocuments() {
         mimeType = "text/markdown";
       } else if (state.outputFormat === "pdf") {
         // Text to PDF
-        const { PDFDocument, StandardFonts, rgb } = PDFLib;
+        const { PDFDocument, StandardFonts } = PDFLib;
         const pdfDoc = await PDFDocument.create();
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-
-        const lines = content.split("\n");
-        const fontSize = 12;
-        const margin = 50;
-        const pageWidth = 612;
-        const pageHeight = 792;
-        const maxWidth = pageWidth - margin * 2;
-        const lineHeight = fontSize * 1.5;
-
-        let page = pdfDoc.addPage([pageWidth, pageHeight]);
-        let y = pageHeight - margin;
-
-        for (const line of lines) {
-          if (y < margin + lineHeight) {
-            page = pdfDoc.addPage([pageWidth, pageHeight]);
-            y = pageHeight - margin;
-          }
-
-          page.drawText(line.substring(0, 80), {
-            x: margin,
-            y: y,
-            size: fontSize,
-            font: font,
-            color: rgb(0, 0, 0),
-          });
-          y -= lineHeight;
-        }
+        addPdfTextPage(pdfDoc, {
+          font,
+          header: fileData.name,
+          content,
+          fontSize: 12,
+        });
 
         const pdfBytes = await pdfDoc.save();
         results.push({
@@ -1261,6 +1339,7 @@ async function processDocuments() {
 }
 
 async function mergeDocumentsToPdf() {
+  ensureDependency("PDFLib", window.PDFLib, "Document PDF merging");
   const { PDFDocument, StandardFonts, rgb } = PDFLib;
   const mergedPdf = await PDFDocument.create();
   const font = await mergedPdf.embedFont(StandardFonts.Helvetica);
@@ -1295,82 +1374,7 @@ async function mergeDocumentsToPdf() {
           });
         }
       } else {
-        // Convert text to PDF page
-        let content = await readFileAsText(fileData.file);
-
-        // Handle different formats
-        if (fileData.extension === "json") {
-          try {
-            content = JSON.stringify(JSON.parse(content), null, 2);
-          } catch (e) {
-            // Keep original content if JSON parsing fails
-          }
-        } else if (["html", "htm"].includes(fileData.extension)) {
-          const doc = new DOMParser().parseFromString(content, "text/html");
-          content = doc.body.textContent || content;
-        } else if (fileData.extension === "md") {
-          // Strip basic markdown formatting
-          content = content
-            .replace(/#{1,6}\s/g, "")
-            .replace(/\*\*(.+?)\*\*/g, "$1")
-            .replace(/\*(.+?)\*/g, "$1")
-            .replace(/\[(.+?)\]\(.+?\)/g, "$1");
-        }
-
-        const lines = content.split("\n");
-        const fontSize = 11;
-        const margin = 50;
-        const pageHeight = 792;
-        const lineHeight = fontSize * 1.4;
-        const maxCharsPerLine = 85;
-
-        let page = mergedPdf.addPage([612, pageHeight]);
-        let y = pageHeight - margin;
-
-        // Add filename header
-        page.drawText(fileData.name, {
-          x: margin,
-          y: y,
-          size: 10,
-          font: font,
-          color: rgb(0.4, 0.4, 0.4),
-        });
-        y -= lineHeight * 2;
-
-        for (const line of lines) {
-          // Word wrap long lines
-          const wrappedLines = [];
-          if (line.length > maxCharsPerLine) {
-            for (let j = 0; j < line.length; j += maxCharsPerLine) {
-              wrappedLines.push(line.substring(j, j + maxCharsPerLine));
-            }
-          } else {
-            wrappedLines.push(line);
-          }
-
-          for (const wrappedLine of wrappedLines) {
-            if (y < margin + lineHeight) {
-              page = mergedPdf.addPage([612, pageHeight]);
-              y = pageHeight - margin;
-            }
-
-            // Sanitize text for PDF (remove special characters that cause issues)
-            const sanitized = wrappedLine.replace(/[\x00-\x1F\x7F]/g, "");
-
-            try {
-              page.drawText(sanitized, {
-                x: margin,
-                y: y,
-                size: fontSize,
-                font: font,
-                color: rgb(0, 0, 0),
-              });
-            } catch (e) {
-              // Skip lines with unsupported characters
-            }
-            y -= lineHeight;
-          }
-        }
+        await addTextToPdf(mergedPdf, fileData, font);
       }
     } catch (error) {
       console.error(`Error processing ${fileData.name}:`, error);
@@ -1386,11 +1390,11 @@ async function mergeDocumentsToPdf() {
 // ========================================
 
 async function mergeAllToPdf() {
+  ensureDependency("PDFLib", window.PDFLib, "Universal PDF merging");
   const { PDFDocument, StandardFonts, rgb } = PDFLib;
   const mergedPdf = await PDFDocument.create();
   const font = await mergedPdf.embedFont(StandardFonts.Helvetica);
   const total = state.files.length;
-  let successCount = 0;
 
   for (let i = 0; i < state.files.length; i++) {
     const fileData = state.files[i];
@@ -1406,12 +1410,10 @@ async function mergeAllToPdf() {
       if (fileData.category === "images") {
         // Embed image as PDF page
         await addImageToPdf(mergedPdf, fileData);
-        successCount++;
       } else if (fileData.extension === "pdf") {
         // Merge existing PDF pages using robust approach
         try {
           await mergePdfIntoDocument(mergedPdf, fileData.file, fileData.name);
-          successCount++;
         } catch (pdfError) {
           console.error(`Could not merge PDF ${fileData.name}:`, pdfError);
           // Add a placeholder page for corrupted/protected PDFs
@@ -1434,7 +1436,6 @@ async function mergeAllToPdf() {
       } else if (fileData.category === "documents") {
         // Convert text document to PDF pages
         await addTextToPdf(mergedPdf, fileData, font);
-        successCount++;
       } else {
         // Fallback for unknown file category
         const page = mergedPdf.addPage([612, 792]);
@@ -1459,7 +1460,6 @@ async function mergeAllToPdf() {
           font: font,
           color: rgb(0.6, 0.6, 0.6),
         });
-        successCount++;
       }
     } catch (error) {
       console.error(`Error processing ${fileData.name}:`, error);
@@ -1509,7 +1509,6 @@ async function mergePdfIntoDocument(targetPdf, sourceFile, fileName) {
   console.log(`Loading PDF: ${fileName}, size: ${fileBytes.length} bytes`);
 
   // First try: Direct pdf-lib merging (fastest, preserves vectors)
-  let directMergeSucceeded = false;
   try {
     const sourcePdf = await PDFDocument.load(fileBytes, {
       ignoreEncryption: true,
@@ -1529,7 +1528,6 @@ async function mergePdfIntoDocument(targetPdf, sourceFile, fileName) {
       console.log(
         `Successfully merged ${pageCount} pages from ${fileName} (direct method)`,
       );
-      directMergeSucceeded = true;
       return;
     }
   } catch (directError) {
@@ -1601,6 +1599,8 @@ async function mergePdfViaRendering(targetPdf, pdfBytes, fileName) {
     throw new Error("PDF has no pages");
   }
 
+  let renderedPages = 0;
+
   for (let pageNum = 1; pageNum <= numPages; pageNum++) {
     try {
       const page = await pdfDoc.getPage(pageNum);
@@ -1614,6 +1614,9 @@ async function mergePdfViaRendering(targetPdf, pdfBytes, fileName) {
       canvas.height = Math.floor(viewport.height);
 
       const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        throw new Error("Canvas 2D rendering is unavailable.");
+      }
       // White background
       ctx.fillStyle = "#FFFFFF";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1659,6 +1662,7 @@ async function mergePdfViaRendering(targetPdf, pdfBytes, fileName) {
       });
 
       console.log(`Rendered page ${pageNum}/${numPages} of ${fileName}`);
+      renderedPages++;
     } catch (pageError) {
       console.error(
         `Error rendering page ${pageNum} of ${fileName}:`,
@@ -1666,6 +1670,10 @@ async function mergePdfViaRendering(targetPdf, pdfBytes, fileName) {
       );
       // Continue with other pages even if one fails
     }
+  }
+
+  if (renderedPages === 0) {
+    throw new Error("PDF.js rendered no pages");
   }
 
   console.log(
@@ -1718,69 +1726,7 @@ async function addImageToPdf(pdfDoc, fileData) {
   }
 }
 
-// Helper function to convert any image via canvas
-async function convertImageViaCanvas(file, pdfDoc, outputType = "png") {
-  try {
-    const dataUrl = await readFileAsDataURL(file);
-    const img = await loadImage(dataUrl);
-
-    // Use naturalWidth/naturalHeight as fallback
-    const width = img.naturalWidth || img.width || 800;
-    const height = img.naturalHeight || img.height || 600;
-
-    if (width === 0 || height === 0) {
-      throw new Error("Image has invalid dimensions");
-    }
-
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-
-    const ctx = canvas.getContext("2d");
-
-    // Fill white background for JPEG (transparency issues)
-    if (outputType === "jpeg") {
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-
-    ctx.drawImage(img, 0, 0, width, height);
-
-    // Convert canvas to blob synchronously using toDataURL
-    const mimeType = outputType === "jpeg" ? "image/jpeg" : "image/png";
-    const quality = outputType === "jpeg" ? 0.92 : 1.0;
-    const dataURL = canvas.toDataURL(mimeType, quality);
-
-    // Extract base64 data
-    const base64Data = dataURL.split(",")[1];
-    if (!base64Data) {
-      throw new Error("Failed to convert canvas to data URL");
-    }
-
-    // Convert base64 to Uint8Array
-    const binaryString = atob(base64Data);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-
-    // Embed in PDF
-    let image;
-    if (outputType === "jpeg") {
-      image = await pdfDoc.embedJpg(bytes);
-    } else {
-      image = await pdfDoc.embedPng(bytes);
-    }
-
-    return image;
-  } catch (error) {
-    console.error("convertImageViaCanvas error:", error);
-    throw error;
-  }
-}
-
 async function addTextToPdf(pdfDoc, fileData, font) {
-  const { rgb } = PDFLib;
   let content = await readFileAsText(fileData.file);
 
   // Convert markdown to plain text (strip basic formatting)
@@ -1798,61 +1744,12 @@ async function addTextToPdf(pdfDoc, fileData, font) {
     content = doc.body.textContent || "";
   }
 
-  const lines = content.split("\n");
-  const fontSize = 11;
-  const margin = 50;
-  const pageWidth = 612;
-  const pageHeight = 792;
-  const lineHeight = fontSize * 1.4;
-  const maxCharsPerLine = 85;
-
-  let page = pdfDoc.addPage([pageWidth, pageHeight]);
-  let y = pageHeight - margin;
-
-  // Add filename header
-  page.drawText(fileData.name, {
-    x: margin,
-    y: y,
-    size: 10,
-    font: font,
-    color: rgb(0.4, 0.4, 0.4),
+  addPdfTextPage(pdfDoc, {
+    font,
+    header: fileData.name,
+    content,
+    fontSize: 11,
   });
-  y -= lineHeight * 2;
-
-  for (const line of lines) {
-    // Word wrap long lines
-    const wrappedLines = [];
-    if (line.length > maxCharsPerLine) {
-      for (let i = 0; i < line.length; i += maxCharsPerLine) {
-        wrappedLines.push(line.substring(i, i + maxCharsPerLine));
-      }
-    } else {
-      wrappedLines.push(line);
-    }
-
-    for (const wrappedLine of wrappedLines) {
-      if (y < margin + lineHeight) {
-        page = pdfDoc.addPage([pageWidth, pageHeight]);
-        y = pageHeight - margin;
-      }
-
-      // Sanitize text for PDF (remove special characters that cause issues)
-      const sanitized = wrappedLine.replace(/[\x00-\x1F\x7F]/g, "");
-
-      try {
-        page.drawText(sanitized, {
-          x: margin,
-          y: y,
-          size: fontSize,
-          font: font,
-          color: rgb(0, 0, 0),
-        });
-      } catch (e) {
-        // Skip lines with unsupported characters
-      }
-      y -= lineHeight;
-    }
-  }
 }
 
 // ========================================
@@ -1899,7 +1796,7 @@ function downloadBlob(blob, filename) {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 function getDefaultOutputFolderName() {
@@ -2027,13 +1924,13 @@ async function downloadResults(files, outputTarget = null) {
     console.warn("Folder save failed. Falling back to ZIP download.", error);
   }
 
+  if (files.length === 1) {
+    downloadBlob(files[0].blob, sanitizeFileName(files[0].name));
+    return;
+  }
+
   const zipDownloaded = await downloadAsZip(files, folderName);
   if (!zipDownloaded) {
-    if (files.length === 1) {
-      downloadBlob(files[0].blob, sanitizeFileName(files[0].name));
-      return;
-    }
-
     const usedNames = new Set();
     for (const file of files) {
       downloadBlob(file.blob, getUniqueFileName(file.name, usedNames));
